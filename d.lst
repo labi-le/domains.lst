@@ -3,3 +3,4 @@ nftset=/claude.ai/4#inet#fw4#vpn_domains
 nftset=/fast.com/4#inet#fw4#vpn_domains
 nftset=/tiktok.com/4#inet#fw4#vpn_domains
 nftset=/cdromance.com/4#inet#fw4#vpn_domains
+nftset=/bing.com/4#inet#fw4#vpn_domains
