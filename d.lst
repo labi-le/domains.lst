@@ -8,3 +8,5 @@ nftset=/sydney.bing.com/4#inet#fw4#vpn_domains
 nftset=/tidal.com/4#inet#fw4#vpn_domains
 nftset=/copilot.microsoft.com/4#inet#fw4#vpn_domains
 nftset=/yt3.ggpht.com/4#inet#fw4#vpn_domains
+nftset=/dancewave.online/dance.ogg#inet#fw4#vpn_domains
+nftset=/retro.dancewave.online/retrodance.ogg#inet#fw4#vpn_domains
