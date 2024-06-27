@@ -4,4 +4,4 @@ nftset=/copilot.microsoft.com/4#inet#fw4#vpn_domains
 nftset=/yt3.ggpht.com/4#inet#fw4#vpn_domains
 nftset=/listen.tidal.com/4#inet#fw4#vpn_domains
 nftset=/auth.tidal.com/4#inet#fw4#vpn_domains
-nftset=/ping.tidal.com/4#inet#fw4#vpn_domains
+nftset=/api.tidal.com/4#inet#fw4#vpn_domains
