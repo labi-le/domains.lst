@@ -1,4 +1,4 @@
-nftset=/10.19.86.106/4#inet#fw4#work_domains
+nftset=/jira.mos.ru/4#inet#fw4#work_domains
 nftset=/10.206.99.65/4#inet#fw4#work_domains
 nftset=/79.137.220.62/4#inet#fw4#work_domains
 nftset=/185.129.100.112/4#inet#fw4#work_domains
