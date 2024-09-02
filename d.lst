@@ -1,2 +1,3 @@
-nftset=/jira.mos.ru/4#inet#fw4#work_domains
-nftset=/gitlab.elocont.ru/4#inet#fw4#work_domains
+nftset=/tiktok.com/4#inet#fw4#vpn_domains
+nftset=/cdromance.com/4#inet#fw4#vpn_domains
+nftset=/copilot.microsoft.com/4#inet#fw4#vpn_domains
