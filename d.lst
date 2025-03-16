@@ -8,3 +8,4 @@ nftset=/imagedelivery.net/4#inet#fw4#vpn_domains
 nftset=/grok.com/4#inet#fw4#vpn_domains
 nftset=/x.ai/4#inet#fw4#vpn_domains
 nftset=/dnsleaktest.com/4#inet#fw4#vpn_domains
+nftset=/ifconfig.me/4#inet#fw4#vpn_domains
