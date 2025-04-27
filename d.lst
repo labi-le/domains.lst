@@ -10,3 +10,4 @@ nftset=/x.ai/4#inet#fw4#vpn_domains
 nftset=/ifconfig.me/4#inet#fw4#vpn_domains
 nftset=/aistudio.google.com/4#inet#fw4#vpn_domains
 nftset=/alkalimakersuite-pa.clients6.google.com/4#inet#fw4#vpn_domains
+nftset=/play.google.com/4#inet#fw4#vpn_domains
