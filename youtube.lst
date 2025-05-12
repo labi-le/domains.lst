@@ -18,4 +18,7 @@ nftset=/yt-video-upload.l.google.com/4#inet#fw4#youtube_domains
 nftset=/jnn-pa.googleapis.com/4#inet#fw4#youtube_domains
 nftset=/returnyoutubedislikeapi.com/4#inet#fw4#youtube_domains
 nftset=/gvt1.com/4#inet#fw4#youtube_domains
+nftset=/gvt2.com/4#inet#fw4#youtube_domains
+nftset=/gvt3.com/4#inet#fw4#youtube_domains
 nftset=/1e100.net/4#inet#fw4#youtube_domains
+nftset=/nhacmp3youtube.com/4#inet#fw4#youtube_domains
