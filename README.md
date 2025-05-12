@@ -1,5 +1,7 @@
 # domains.lst
 
+###### [spasibo](https://github.com/itdoginfo/domain-routing-openwrt)
+
 #### pbr
 ```sh
 wget https://raw.githubusercontent.com/labi-le/domains.lst/main/pbr -O /etc/init.d/pbr && chmod +x /etc/init.d/pbr
