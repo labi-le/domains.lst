@@ -1,7 +1,6 @@
 #!/bin/sh
 
 CIDR_URL="https://raw.githubusercontent.com/touhidurrr/iplist-youtube/refs/heads/main/lists/cidr4.txt"
-OUTPUT_SCRIPT="nfset_youtube.sh"
 
 NFT_FAMILY="inet"
 NFT_TABLE="fw4"
@@ -28,23 +27,21 @@ if ! [[ "$total_lines" =~ ^[0-9]+$ ]] || [ "$total_lines" -le 0 ]; then
     exit 1
 fi
 
-echo "#!/bin/sh" > "$OUTPUT_SCRIPT"
-
-echo "nft add element $NFT_FAMILY $NFT_TABLE $NFT_SET { \\" >> "$OUTPUT_SCRIPT"
-
-echo "$CIDR_CONTENT" | awk -v total="$total_lines" '{
+ELEMENTS_STRING=$(echo "$CIDR_CONTENT" | awk -v total="$total_lines" '{
   # $0 CIDR
-  printf "  %s", $0;
+  printf "%s", $0;
   if (NR < total) {
-    printf ", \\";
-  } else {
-    printf " \\";
+    printf ", ";
   }
-  printf "\n";
-}' >> "$OUTPUT_SCRIPT"
+}')
 
-echo "}" >> "$OUTPUT_SCRIPT"
+echo "Adding elements to nft set: $NFT_FAMILY/$NFT_TABLE/$NFT_SET..."
+nft add element "$NFT_FAMILY" "$NFT_TABLE" "$NFT_SET" "{ $ELEMENTS_STRING }"
+NFT_EXIT_CODE=$?
 
-chmod +x "$OUTPUT_SCRIPT"
+if [ "$NFT_EXIT_CODE" -ne 0 ]; then
+  echo "Error: nft add element command failed (exit code: $NFT_EXIT_CODE)."
+  exit 1
+fi
 
-echo "Generated script '$OUTPUT_SCRIPT' successfully using downloaded CIDR list."
+echo "Elements added successfully."
