@@ -6,47 +6,81 @@ start () {
     OUTPUT_FILE="/tmp/dnsmasq.d/youtube.lst"
     > "$OUTPUT_FILE"
 
-    DOMAINS="
-        https://raw.githubusercontent.com/labi-le/domains.lst/main/youtube.lst
+    DOMAINS_URLS="
+        https://raw.githubusercontent.com/antonme/ipnames/refs/heads/master/dns-youtube.txt
         https://raw.githubusercontent.com/GhostRooter0953/discord-voice-ips/refs/heads/master/voice_domains/discord-voice-domains-list
         https://raw.githubusercontent.com/GhostRooter0953/discord-voice-ips/refs/heads/master/main_domains/discord-main-domains-list
     "
 
-    count=0
-    while true; do
-        if curl -m 3 github.com; then
-            for DOMAIN in $DOMAINS; do
-                echo "Processing $DOMAIN"
-                curl -f "$DOMAIN" | tee -a "$OUTPUT_FILE"
-            done
-            break
-        else
-            echo "GitHub is not available. Check the internet availability [$count]"
-            count=$((count+1))
-        fi
-    done
-
-    if dnsmasq --conf-file="$OUTPUT_FILE" --test 2>&1 | grep -q "syntax check OK"; then
-        /etc/init.d/dnsmasq restart
-    fi
-
-    CIDR_URL="https://raw.githubusercontent.com/touhidurrr/iplist-youtube/refs/heads/main/lists/cidr4.txt"
+    RAW_DOMAIN_CONTENT_ACCUMULATOR=""
 
     NFT_FAMILY="inet"
     NFT_TABLE="fw4"
     NFT_SET="youtube_domains"
 
-    echo "Downloading CIDR list from $CIDR_URL..."
-    CIDR_CONTENT=$(curl -sSL "$CIDR_URL")
-    CURL_EXIT_CODE=$?
+    for DOMAIN_SINGLE_URL in $DOMAINS_URLS; do
+        echo "Downloading domain list from $DOMAIN_SINGLE_URL..."
+        CURRENT_DOMAIN_DOWNLOAD=$(curl -sSL "$DOMAIN_SINGLE_URL")
+        CURL_EXIT_CODE=$?
 
-    if [ "$CURL_EXIT_CODE" -ne 0 ]; then
-      echo "Error: curl failed to download from $CIDR_URL (exit code: $CURL_EXIT_CODE)."
-      exit 1
+        if [ "$CURL_EXIT_CODE" -ne 0 ]; then
+            echo "Warning: curl failed to download from $DOMAIN_SINGLE_URL (exit code: $CURL_EXIT_CODE). Skipping this URL."
+        elif [ -n "$CURRENT_DOMAIN_DOWNLOAD" ]; then
+            RAW_DOMAIN_CONTENT_ACCUMULATOR="${RAW_DOMAIN_CONTENT_ACCUMULATOR}${CURRENT_DOMAIN_DOWNLOAD}"$'\n'
+        else
+            echo "Warning: Downloaded content from $DOMAIN_SINGLE_URL is empty."
+        fi
+    done
+
+    PROCESSED_DOMAINS_FOR_FILE=""
+    if [ -n "$RAW_DOMAIN_CONTENT_ACCUMULATOR" ]; then
+        while IFS= read -r line || [ -n "$line" ]; do
+            trimmed_line=$(echo "$line" | awk '{$1=$1};1')
+            if [ -n "$trimmed_line" ]; then
+                PROCESSED_DOMAINS_FOR_FILE="${PROCESSED_DOMAINS_FOR_FILE}nftset=/${trimmed_line}/4#${NFT_FAMILY}#${NFT_TABLE}#${NFT_SET}"$'\n'
+            fi
+        done <<EOF
+$(echo "$RAW_DOMAIN_CONTENT_ACCUMULATOR" | awk 'NF')
+EOF
     fi
 
+    if [ -z "$PROCESSED_DOMAINS_FOR_FILE" ]; then
+        echo "Warning: No domain content was successfully downloaded and processed. Output file ($OUTPUT_FILE) will be empty."
+    fi
+
+    printf "%s" "$PROCESSED_DOMAINS_FOR_FILE" > "$OUTPUT_FILE"
+
+    if dnsmasq --conf-file="$OUTPUT_FILE" --test 2>&1 | grep -q "syntax check OK"; then
+        /etc/init.d/dnsmasq restart
+    fi
+
+    CIDR_URLS="
+        https://raw.githubusercontent.com/touhidurrr/iplist-youtube/refs/heads/main/lists/cidr4.txt
+    "
+
+    RAW_CIDR_CONTENT_ACCUMULATOR=""
+
+    for CIDR_SINGLE_URL in $CIDR_URLS; do
+        echo "Downloading CIDR list from $CIDR_SINGLE_URL..."
+        CURRENT_CIDR_DOWNLOAD=$(curl -sSL "$CIDR_SINGLE_URL")
+        CURL_EXIT_CODE=$?
+
+        if [ "$CURL_EXIT_CODE" -ne 0 ]; then
+          echo "Error: curl failed to download from $CIDR_SINGLE_URL (exit code: $CURL_EXIT_CODE)."
+          exit 1
+        fi
+
+        if [ -n "$CURRENT_CIDR_DOWNLOAD" ]; then
+            RAW_CIDR_CONTENT_ACCUMULATOR="${RAW_CIDR_CONTENT_ACCUMULATOR}${CURRENT_CIDR_DOWNLOAD}"$'\n'
+        else
+            echo "Warning: Downloaded content from $CIDR_SINGLE_URL is empty."
+        fi
+    done
+
+    CIDR_CONTENT=$(echo "$RAW_CIDR_CONTENT_ACCUMULATOR" | awk 'NF')
+
     if [ -z "$CIDR_CONTENT" ]; then
-      echo "Error: Downloaded CIDR list from $CIDR_URL is empty."
+      echo "Error: All downloaded CIDR lists resulted in no valid content."
       exit 1
     fi
 
@@ -58,7 +92,6 @@ start () {
     fi
 
     ELEMENTS_STRING=$(echo "$CIDR_CONTENT" | awk -v total="$total_lines" '{
-      # $0 CIDR
       printf "%s", $0;
       if (NR < total) {
         printf ", ";
