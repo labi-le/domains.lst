@@ -8,6 +8,8 @@ start () {
 
     DOMAINS="
         https://raw.githubusercontent.com/labi-le/domains.lst/main/youtube.lst
+        https://raw.githubusercontent.com/GhostRooter0953/discord-voice-ips/refs/heads/master/voice_domains/discord-voice-domains-list
+        https://raw.githubusercontent.com/GhostRooter0953/discord-voice-ips/refs/heads/master/main_domains/discord-main-domains-list
     "
 
     count=0
