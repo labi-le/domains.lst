@@ -7,19 +7,23 @@ NFT_TABLE="fw4"
 
 start () {
     _process_domain_set \
-        "/tmp/dnsmasq.d/02_entertainment_services.lst" \
-        "youtube_domains" \
-        "https://raw.githubusercontent.com/antonme/ipnames/refs/heads/master/dns-youtube.txt" \
-        "https://raw.githubusercontent.com/GhostRooter0953/discord-voice-ips/refs/heads/master/voice_domains/discord-voice-domains-list" \
-        "https://raw.githubusercontent.com/GhostRooter0953/discord-voice-ips/refs/heads/master/main_domains/discord-main-domains-list"
-
-    _process_domain_set \
         "/tmp/dnsmasq.d/01_ai_services.lst" \
         "vpn_domains" \
         "https://raw.githubusercontent.com/antonme/ipnames/refs/heads/master/dns-google.txt" \
         "https://raw.githubusercontent.com/antonme/ipnames/refs/heads/master/dns-anthropic.txt" \
         "https://raw.githubusercontent.com/antonme/ipnames/refs/heads/master/dns-openai.txt" \
-        "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom.txt"
+        "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom.txt" \
+        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/porn.lst"  \
+        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/news.lst" \
+        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/block.lst" \
+        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/geoblock.lst"
+
+    _process_domain_set \
+        "/tmp/dnsmasq.d/02_entertainment_services.lst" \
+        "youtube_domains" \
+        "https://raw.githubusercontent.com/antonme/ipnames/refs/heads/master/dns-youtube.txt" \
+        "https://raw.githubusercontent.com/GhostRooter0953/discord-voice-ips/refs/heads/master/voice_domains/discord-voice-domains-list" \
+        "https://raw.githubusercontent.com/GhostRooter0953/discord-voice-ips/refs/heads/master/main_domains/discord-main-domains-list"
 
     echo "Domain processing complete. Restarting dnsmasq." >&2
     /etc/init.d/dnsmasq restart
@@ -79,7 +83,6 @@ _process_domain_set() {
     fi
 
     if dnsmasq --conf-file="$output_file" --test 2>&1 | grep -q "syntax check OK"; then
-        echo "Dnsmasq syntax check OK for $output_file." >&2
         return 0
     else
         echo "Error: Dnsmasq syntax check FAILED for $output_file. Removing problematic file." >&2
