@@ -2,30 +2,88 @@
 
 START=99
 
+NFT_FAMILY="inet"
+NFT_TABLE="fw4"
+
 start () {
-    OUTPUT_FILE="/tmp/dnsmasq.d/domains.lst"
-    > "$OUTPUT_FILE"
+    _process_domain_set \
+        "/tmp/dnsmasq.d/02_entertainment_services.lst" \
+        "youtube_domains" \
+        "https://raw.githubusercontent.com/antonme/ipnames/refs/heads/master/dns-youtube.txt" \
+        "https://raw.githubusercontent.com/GhostRooter0953/discord-voice-ips/refs/heads/master/voice_domains/discord-voice-domains-list" \
+        "https://raw.githubusercontent.com/GhostRooter0953/discord-voice-ips/refs/heads/master/main_domains/discord-main-domains-list"
 
-    DOMAINS="
-        https://raw.githubusercontent.com/itdoginfo/allow-domains/main/Russia/inside-dnsmasq-nfset.lst
-        https://raw.githubusercontent.com/labi-le/domains.lst/main/d.lst
-    "
+    _process_domain_set \
+        "/tmp/dnsmasq.d/01_ai_services.lst" \
+        "vpn_domains" \
+        "https://raw.githubusercontent.com/antonme/ipnames/refs/heads/master/dns-google.txt" \
+        "https://raw.githubusercontent.com/antonme/ipnames/refs/heads/master/dns-anthropic.txt" \
+        "https://raw.githubusercontent.com/antonme/ipnames/refs/heads/master/dns-openai.txt" \
+        "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom.txt"
 
-    count=0
-    while true; do
-        if curl -m 3 github.com; then
-            for DOMAIN in $DOMAINS; do
-                echo "Processing $DOMAIN"
-                curl -f "$DOMAIN" | tee -a "$OUTPUT_FILE"
-            done
-            break
+    echo "Domain processing complete. Restarting dnsmasq." >&2
+    /etc/init.d/dnsmasq restart
+
+    exit 0
+}
+
+
+_process_domain_set() {
+    local output_file="$1"
+    local nft_set_name="$2"
+    shift 2
+    local domains_urls_list="$@"
+
+    local curl_failed_count=0
+    local urls_count=0
+    local downloaded_content=""
+
+    echo "Processing set: $nft_set_name -> $output_file" >&2
+    > "$output_file"
+
+    for domain_single_url in $domains_urls_list; do
+        urls_count=$((urls_count + 1))
+        echo "Downloading domain list from $domain_single_url for $nft_set_name..." >&2
+        current_domain_download=$(curl -sSL "$domain_single_url")
+        curl_exit_code=$?
+
+        if [ "$curl_exit_code" -ne 0 ]; then
+            echo "Warning: curl failed for $domain_single_url (exit: $curl_exit_code) for $nft_set_name." >&2
+            curl_failed_count=$((curl_failed_count + 1))
+        elif [ -n "$current_domain_download" ]; then
+            downloaded_content="${downloaded_content}${current_domain_download}\n"
         else
-            echo "GitHub is not available. Check the internet availability [$count]"
-            count=$((count+1))
+            echo "Warning: Downloaded content from $domain_single_url for $nft_set_name is empty." >&2
         fi
     done
 
-    if dnsmasq --conf-file=$OUTPUT_FILE --test 2>&1 | grep -q "syntax check OK"; then
-        /etc/init.d/dnsmasq restart
+    if [ "$urls_count" -gt 0 ] && [ "$curl_failed_count" -eq "$urls_count" ]; then
+        echo "Error: All downloads failed for $nft_set_name. Output file $output_file will be empty." >&2
+        return 1
+    fi
+
+    if [ -z "$downloaded_content" ] && [ "$urls_count" -gt 0 ]; then
+        echo "Warning: All downloaded content was empty for $nft_set_name. Output file $output_file will be empty." >&2
+    fi
+
+    printf "%b" "$downloaded_content" | awk -v nft_family="$NFT_FAMILY" -v nft_table="$NFT_TABLE" -v nft_set="$nft_set_name" '
+        NF > 0 {
+            $1 = $1;
+            print "nftset=/" $0 "/4#" nft_family "#" nft_table "#" nft_set
+        }
+    ' > "$output_file"
+
+    if [ ! -s "$output_file" ]; then
+        echo "Warning: Output file $output_file for $nft_set_name is empty after processing." >&2
+        return 1
+    fi
+
+    if dnsmasq --conf-file="$output_file" --test 2>&1 | grep -q "syntax check OK"; then
+        echo "Dnsmasq syntax check OK for $output_file." >&2
+        return 0
+    else
+        echo "Error: Dnsmasq syntax check FAILED for $output_file. Removing problematic file." >&2
+        rm -f "$output_file"
+        return 1
     fi
 }
