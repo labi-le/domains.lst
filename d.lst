@@ -1,13 +1,4 @@
-nftset=/tiktok.com/4#inet#fw4#vpn_domains
-nftset=/cdromance.com/4#inet#fw4#vpn_domains
-nftset=/vpnjantit.com/4#inet#fw4#vpn_domains
-nftset=/steamdb.info/4#inet#fw4#vpn_domains
-nftset=/cvedetails.com/4#inet#fw4#vpn_domains
-nftset=/githubcopilot.com/4#inet#fw4#vpn_domains
-nftset=/imagedelivery.net/4#inet#fw4#vpn_domains
-nftset=/grok.com/4#inet#fw4#vpn_domains
-nftset=/x.ai/4#inet#fw4#vpn_domains
-nftset=/ifconfig.me/4#inet#fw4#vpn_domains
-nftset=/ai.google.dev/4#inet#fw4#vpn_domains
-nftset=/aistudio.google.com/4#inet#fw4#vpn_domains
-nftset=/alkalimakersuite-pa.clients6.google.com/4#inet#fw4#vpn_domains
+cdromance.com
+vpnjantit.com
+steamdb.info
+ifconfig.me
