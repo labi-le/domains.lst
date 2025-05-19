@@ -3,3 +3,4 @@ vpnjantit.com
 steamdb.info
 ifconfig.me
 fast.com
+gitguardian.com
