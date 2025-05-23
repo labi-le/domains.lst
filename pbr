@@ -43,6 +43,7 @@ _process_domain_set() {
     local urls_count=0
     local downloaded_content=""
 
+    rm -f "$output_file"
     echo "Processing set: $nft_set_name -> $output_file" >&2
     > "$output_file"
 
