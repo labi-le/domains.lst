@@ -7,7 +7,7 @@ NFT_TABLE="fw4"
 
 start () {
     _process_domain_set \
-        "/tmp/dnsmasq.d/01_ai_services.lst" \
+        "/tmp/dnsmasq.d/02_ai_services.lst" \
         "vpn_domains" \
         "https://raw.githubusercontent.com/antonme/ipnames/refs/heads/master/dns-google.txt" \
         "https://raw.githubusercontent.com/antonme/ipnames/refs/heads/master/dns-anthropic.txt" \
@@ -16,16 +16,17 @@ start () {
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/porn.lst"  \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/news.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/block.lst" \
-        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/geoblock.lst"
+        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/geoblock.lst" \
+        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/meta.lst"
 
     _process_domain_set \
-        "/tmp/dnsmasq.d/02_entertainment_services.lst" \
+        "/tmp/dnsmasq.d/01_entertainment_services.lst" \
         "youtube_domains" \
         "https://raw.githubusercontent.com/antonme/ipnames/refs/heads/master/dns-youtube.txt" \
         "https://raw.githubusercontent.com/GhostRooter0953/discord-voice-ips/refs/heads/master/voice_domains/discord-voice-domains-list" \
         "https://raw.githubusercontent.com/GhostRooter0953/discord-voice-ips/refs/heads/master/main_domains/discord-main-domains-list"
 
-    echo "Domain processing complete. Restarting dnsmasq." >&2
+    echo "Processing complete. Restarting dnsmasq." >&2
     /etc/init.d/dnsmasq restart
 
     exit 0
@@ -47,7 +48,7 @@ _process_domain_set() {
 
     for domain_single_url in $domains_urls_list; do
         urls_count=$((urls_count + 1))
-        echo "Downloading domain list from $domain_single_url for $nft_set_name..." >&2
+        echo "Downloading from $domain_single_url for $nft_set_name..." >&2
         current_domain_download=$(curl -sSL "$domain_single_url")
         curl_exit_code=$?
 
