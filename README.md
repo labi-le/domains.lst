@@ -21,7 +21,7 @@ wget https://raw.githubusercontent.com/labi-le/domains.lst/main/pbr-yt -O /etc/i
 service [name] restart
 ```
 
-# weak 06:00
+#### every weak 06:00
 ```sh
-0 6 * * 0 /etc/init.d/pbr start
+sh -c '(crontab -l 2>/dev/null; echo "0 6 * * 0 /etc/init.d/pbr start") | crontab -'
 ```
