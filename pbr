@@ -39,6 +39,8 @@ _process_domain_set() {
     shift 2
     local domains_urls_list="$@"
 
+    nft flush set "$NFT_FAMILY" "$NFT_TABLE" "$nft_set_name"
+
     local curl_failed_count=0
     local urls_count=0
     local downloaded_content=""
