@@ -20,3 +20,8 @@ wget https://raw.githubusercontent.com/labi-le/domains.lst/main/pbr-yt -O /etc/i
 ```sh
 service [name] restart
 ```
+
+# weak 06:00
+```sh
+0 6 * * 0 /etc/init.d/pbr start
+```
