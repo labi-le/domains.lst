@@ -25,3 +25,9 @@ service [name] restart
 ```sh
 sh -c '(crontab -l 2>/dev/null; echo "0 6 * * 0 /etc/init.d/pbr start") | crontab -'
 ```
+
+#### hotplug.d
+```sh
+echo 'ip route add table vpn default dev awg0' > /etc/hotplug.d/iface/30-vpn
+echo 'ip route add table youtube default dev awg1' > /etc/hotplug.d/iface/40-youtube
+```
