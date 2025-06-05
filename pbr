@@ -24,6 +24,7 @@ start () {
         "youtube_domains" \
         "https://raw.githubusercontent.com/antonme/ipnames/refs/heads/master/dns-youtube.txt" \
         "https://raw.githubusercontent.com/GhostRooter0953/discord-voice-ips/refs/heads/master/voice_domains/discord-voice-domains-list" \
+        "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-speedtest.txt" \
         "https://raw.githubusercontent.com/GhostRooter0953/discord-voice-ips/refs/heads/master/main_domains/discord-main-domains-list"
 
     echo "Processing complete. Restarting dnsmasq." >&2
