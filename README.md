@@ -8,7 +8,7 @@ wget https://raw.githubusercontent.com/labi-le/domains.lst/main/pbr -O /etc/init
 ```
 
 ```sh
-service [name] restart
+service pbr restart
 ```
 
 #### every weak 06:00
