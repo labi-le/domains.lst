@@ -11,7 +11,7 @@ start () {
     _process_domain_set \
         "/tmp/dnsmasq.d/02_ai_services.lst" \
         "vpn_domains" \
-        "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom.txt" \
+        "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set1.txt" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/porn.lst"  \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/news.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/block.lst" \
@@ -26,7 +26,7 @@ start () {
         "/tmp/dnsmasq.d/01_entertainment_services.lst" \
         "youtube_domains" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/google_play.lst" \
-        "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-speedtest.txt" \
+        "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set2.txt" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/discord.lst"
 
     _process_ip_set \
