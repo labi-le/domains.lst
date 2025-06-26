@@ -6,6 +6,8 @@ NFT_FAMILY="inet"
 NFT_TABLE="fw4"
 
 start () {
+    nft flush set "$NFT_FAMILY" "$NFT_TABLE" "vpn_domains"
+
     _process_domain_set \
         "/tmp/dnsmasq.d/02_ai_services.lst" \
         "vpn_domains" \
@@ -18,29 +20,30 @@ start () {
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/twitter.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/google_ai.lst"
 
+    nft flush set "$NFT_FAMILY" "$NFT_TABLE" "youtube_domains"
+
     _process_domain_set \
         "/tmp/dnsmasq.d/01_entertainment_services.lst" \
         "youtube_domains" \
-        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/youtube.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/google_play.lst" \
-        "https://raw.githubusercontent.com/GhostRooter0953/discord-voice-ips/refs/heads/master/voice_domains/discord-voice-domains-list" \
         "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-speedtest.txt" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/discord.lst"
 
+    _process_ip_set \
+    	"youtube_domains" \
+    	"https://raw.githubusercontent.com/touhidurrr/iplist-youtube/refs/heads/main/lists/cidr4.txt" \
+    	"https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/cidr/gemini.txt"
+
     echo "Processing complete. Restarting dnsmasq." >&2
     /etc/init.d/dnsmasq restart
-
     exit 0
 }
-
 
 _process_domain_set() {
     local output_file="$1"
     local nft_set_name="$2"
     shift 2
     local domains_urls_list="$@"
-
-    nft flush set "$NFT_FAMILY" "$NFT_TABLE" "$nft_set_name"
 
     local curl_failed_count=0
     local urls_count=0
@@ -92,6 +95,71 @@ _process_domain_set() {
     else
         echo "Error: Dnsmasq syntax check FAILED for $output_file. Removing problematic file." >&2
         rm -f "$output_file"
+        return 1
+    fi
+}
+
+_process_ip_set() {
+    local nft_set_name="$1"
+    local ip_url="$2"
+    shift 2
+    local exclude_urls="$@"
+
+    local downloaded_content=""
+    local filtered_content=""
+    local ip_list_formatted=""
+    local exclude_cidrs=""
+
+    echo "Processing IP set: $nft_set_name" >&2
+    echo "Downloading from '$ip_url'..." >&2
+
+    downloaded_content=$(curl --connect-timeout 5 --max-time 15 -sSLf "$ip_url")
+    if [ "$?" -ne 0 ]; then
+        echo "Warning: curl failed for '$ip_url'." >&2
+        return 1
+    fi
+
+    if [ -n "$exclude_urls" ]; then
+        for url in $exclude_urls; do
+            echo "Downloading exclusion list from '$url'..." >&2
+            exclude_part=$(curl --connect-timeout 5 --max-time 15 -sSLf "$url")
+            if [ "$?" -ne 0 ]; then
+                echo "Warning: curl failed for '$url'. Exclusions from this file will not be applied." >&2
+            else
+                exclude_cidrs="${exclude_cidrs}${exclude_part}\n"
+            fi
+        done
+    fi
+
+    exclude_cidrs=$(printf "%b" "$exclude_cidrs" | awk 'NF > 0' | sort -u)
+
+    filtered_content="$downloaded_content"
+    if [ -n "$exclude_cidrs" ]; then
+        while read -r excl; do
+            if [ -n "$excl" ]; then
+                if echo "$filtered_content" | grep -qxF "$excl"; then
+                    echo "Exclusion match: '$excl' found and will be removed from '$nft_set_name'." >&2
+                fi
+                filtered_content=$(echo "$filtered_content" | grep -vxF "$excl")
+            fi
+        done <<EOF
+$exclude_cidrs
+EOF
+    fi
+
+    ip_list_formatted=$(echo "$filtered_content" | awk 'NF > 0 { printf "%s,", $1 }' | sed 's/,$//')
+
+    if [ -z "$ip_list_formatted" ]; then
+        echo "Error: IP list for '$nft_set_name' is empty after processing." >&2
+        return 1
+    fi
+
+    echo "Adding elements to nft set '$nft_set_name'..." >&2
+    if nft add element "$NFT_FAMILY" "$NFT_TABLE" "$nft_set_name" "{ $ip_list_formatted }"; then
+        echo "Successfully updated nft set '$nft_set_name'." >&2
+        return 0
+    else
+        echo "FATAL: Failed to update nft set '$nft_set_name'." >&2
         return 1
     fi
 }
