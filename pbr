@@ -31,8 +31,8 @@ start () {
 
     _process_ip_set \
     	"youtube_domains" \
-    	"https://raw.githubusercontent.com/touhidurrr/iplist-youtube/refs/heads/main/lists/cidr4.txt" \
-    	"https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/cidr/gemini.txt"
+    	"https://raw.githubusercontent.com/antonme/ipnames/refs/heads/master/merged/ipv4-youtube.cidr"
+    	# "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/cidr/gemini.txt"
 
     echo "Processing complete. Restarting dnsmasq." >&2
     /etc/init.d/dnsmasq restart
