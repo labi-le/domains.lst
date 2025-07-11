@@ -29,11 +29,6 @@ start () {
         "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set2.txt" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/discord.lst"
 
-    _process_ip_set \
-    	"youtube_domains" \
-    	"https://raw.githubusercontent.com/antonme/ipnames/refs/heads/master/merged/ipv4-youtube.cidr"
-    	# "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/cidr/gemini.txt"
-
     echo "Processing complete. Restarting dnsmasq." >&2
     /etc/init.d/dnsmasq restart
     exit 0
