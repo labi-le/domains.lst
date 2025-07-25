@@ -27,6 +27,9 @@ start () {
         "youtube_domains" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/google_play.lst" \
         "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set2.txt" \
+        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/youtube.lst" \
+        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/tiktok.lst" \
+        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/anime.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/discord.lst"
 
     echo "Processing complete. Restarting dnsmasq." >&2
