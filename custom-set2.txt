@@ -4,3 +4,4 @@ supporter-files.nexus-cdn.com
 cloudflare-ech.com
 speedtest.net
 t.me
+cache.nixos.org
