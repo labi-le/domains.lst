@@ -12,12 +12,7 @@ start () {
         "/tmp/dnsmasq.d/02_ai_services.lst" \
         "vpn_domains" \
         "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set1.txt" \
-        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/porn.lst"  \
-        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/news.lst" \
-        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/block.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/geoblock.lst" \
-        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/meta.lst" \
-        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/twitter.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/google_ai.lst"
 
     nft flush set "$NFT_FAMILY" "$NFT_TABLE" "youtube_domains"
@@ -28,9 +23,18 @@ start () {
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/google_play.lst" \
         "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set2.txt" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/youtube.lst" \
+        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/porn.lst"  \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/tiktok.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/anime.lst" \
+        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/meta.lst" \
+        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/news.lst" \
+        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/twitter.lst" \
+        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/block.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/discord.lst"
+
+	_process_ip_set \
+		"youtube_domains" \
+		"https://core.telegram.org/resources/cidr.txt"
 
     echo "Processing complete. Restarting dnsmasq." >&2
     /etc/init.d/dnsmasq restart
@@ -116,6 +120,8 @@ _process_ip_set() {
         echo "Warning: curl failed for '$ip_url'." >&2
         return 1
     fi
+
+    downloaded_content=$(echo "$downloaded_content" | grep -v ":")
 
     if [ -n "$exclude_urls" ]; then
         for url in $exclude_urls; do
