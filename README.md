@@ -22,6 +22,11 @@ echo 'ip route add table vpn default dev awg0' > /etc/hotplug.d/iface/30-vpn
 echo 'ip route add table youtube default dev awg1' > /etc/hotplug.d/iface/40-youtube
 ```
 
+#### swap
+```sh
+ip route replace table vpn default dev tun0
+```
+
 #### iproute2
 ```sh
 echo '99 vpn' >> /etc/iproute2/rt_tables
