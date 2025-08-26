@@ -1,4 +1,4 @@
-# domains.lst
+# pbr
 
 ###### [spasibo](https://github.com/itdoginfo/domain-routing-openwrt)
 
