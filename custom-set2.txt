@@ -5,3 +5,4 @@ speedtest.net
 t.me
 cache.nixos.org
 archlinux.org
+cloudflare-ech.com
