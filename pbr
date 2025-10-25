@@ -20,10 +20,8 @@ start () {
     _process_domain_set \
         "/tmp/dnsmasq.d/01_entertainment_services.lst" \
         "youtube_domains" \
-        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/google_play.lst" \
         "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set2.txt" \
-        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/block.lst" \
-        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/youtube.lst" \
+        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/block.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/porn.lst"  \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/tiktok.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/anime.lst" \
@@ -32,9 +30,9 @@ start () {
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/twitter.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/discord.lst"
 
-	_process_ip_set \
-		"youtube_domains" \
-		"https://raw.githubusercontent.com/GhostRooter0953/discord-voice-ips/refs/heads/master/voice_domains/discord-voice-ip-list"
+ 	_process_ip_set \
+ 		"youtube_domains" \
+ 		"https://raw.githubusercontent.com/GhostRooter0953/discord-voice-ips/refs/heads/master/voice_domains/discord-voice-ip-list"
 
     echo "Processing complete. Restarting dnsmasq." >&2
     /etc/init.d/dnsmasq restart
@@ -58,7 +56,7 @@ _process_domain_set() {
     for domain_single_url in $domains_urls_list; do
         urls_count=$((urls_count + 1))
         echo "Downloading from $domain_single_url for $nft_set_name..." >&2
-        current_domain_download=$(curl -sSL "$domain_single_url")
+        current_domain_download=$(curl -sSLf "$domain_single_url")
         curl_exit_code=$?
 
         if [ "$curl_exit_code" -ne 0 ]; then
@@ -167,4 +165,3 @@ EOF
         return 1
     fi
 }
-
