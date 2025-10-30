@@ -4,5 +4,5 @@ STOP=01
 
 start() {
 	wget -O /tmp/dnsmasq.d/03_youtube_block_ipv6.lst https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/03_youtube_block_ipv6.lst
-	service dnsmasq restart
+	/etc/init.d/dnsmasq restart
 }
