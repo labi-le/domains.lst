@@ -82,6 +82,7 @@ _process_domain_set() {
         NF > 0 {
             $1 = $1;
             print "nftset=/" $0 "/4#" nft_family "#" nft_table "#" nft_set
+            print "address=/" $0 "/::"
         }
     ' > "$output_file"
 
