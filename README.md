@@ -8,7 +8,16 @@ wget https://raw.githubusercontent.com/labi-le/domains.lst/main/pbr -O /etc/init
 ```
 
 ```sh
-service pbr restart
+service pbr enable && service pbr start
+```
+
+#### block ipv6 youtube 
+```sh
+wget https://raw.githubusercontent.com/labi-le/domains.lst/main/youtube-ipv6-block -O /etc/init.d/youtube-ipv6-block && chmod +x /etc/init.d/youtube-ipv6-block
+```
+
+```sh
+service youtube-ipv6-block enable && service youtube-ipv6-block start 
 ```
 
 #### every weak 06:00
