@@ -4,21 +4,28 @@
 
 #### pbr
 ```sh
-wget https://raw.githubusercontent.com/labi-le/domains.lst/main/pbr -O /etc/init.d/pbr && chmod +x /etc/init.d/pbr
-```
-
-```sh
-service pbr enable && service pbr start
+wget https://raw.githubusercontent.com/labi-le/domains.lst/main/pbr -O /etc/init.d/pbr &&
+chmod +x /etc/init.d/pbr &&
+service pbr enable &&
+service pbr start
 ```
 
 #### block ipv6 youtube 
 ```sh
-wget https://raw.githubusercontent.com/labi-le/domains.lst/main/youtube-ipv6-block -O /etc/init.d/youtube-ipv6-block && chmod +x /etc/init.d/youtube-ipv6-block
+wget https://raw.githubusercontent.com/labi-le/domains.lst/main/youtube-ipv6-block -O /etc/init.d/youtube-ipv6-block &&
+chmod +x /etc/init.d/youtube-ipv6-block &&
+service youtube-ipv6-block enable &&
+service youtube-ipv6-block start
 ```
 
+#### external-dns
 ```sh
-service youtube-ipv6-block enable && service youtube-ipv6-block start 
+wget https://raw.githubusercontent.com/labi-le/domains.lst/main/external-dns -O /etc/init.d/external-dns &&
+chmod +x /etc/init.d/external-dns &&
+service external-dns enable &&
+service external-dns start
 ```
+
 
 #### every weak 06:00
 ```sh
