@@ -13,13 +13,9 @@ start_service() {
 
         while :; do
             network_get_ipaddr IP wan && [ -n "$IP" ] && {
-                for i in $(uci show dhcp | grep "\.name=\"${DNS}\"" | cut -d. -f2); do
-                    uci delete dhcp.$i
-                done
-
-                uci add dhcp domain
-                uci set dhcp.@domain[-1].name="$DNS"
-                uci set dhcp.@domain[-1].ip="$IP"
+                uci set dhcp.external=domain
+                uci set dhcp.external.name="$DNS"
+                uci set dhcp.external.ip="$IP"
                 uci commit dhcp
                 /etc/init.d/dnsmasq restart
 
