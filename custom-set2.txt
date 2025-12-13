@@ -3,6 +3,6 @@ garnix.io
 supporter-files.nexus-cdn.com
 speedtest.net
 cache.nixos.org
-archlinux.org
 cloudflare-ech.com
 cachix.org
+dl.pstmn.io
