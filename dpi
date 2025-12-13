@@ -13,6 +13,11 @@ CIADPI_ARGS="-Ku -a1 -An -o1 -At,r,s -d1 -p $PORT --transparent"
 
 MARK=0x00000004
 
+NFT_FAMILY="inet"
+NFT_TABLE="fw4"
+
+TABLE_NAME="dpi_domains"
+
 add_nft_rules() {
     del_nft_rules
     nft add rule inet fw4 dstnat_lan iifname "br-lan" meta l4proto { tcp, udp } meta mark $MARK redirect to :$PORT
@@ -25,8 +30,23 @@ del_nft_rules() {
     fi
 }
 
+flush_dnsmasq_rules() {
+	nft flush set "$NFT_FAMILY" "$NFT_TABLE" "$TABLE_NAME"
+	/etc/init.d/dnsmasq restart
+}
+
+add_dnsmasq_domains() {
+    _process_domain_set \
+        "/tmp/dnsmasq.d/03_dpi_services.lst" \
+        "$TABLE_NAME" \
+        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/youtube.lst"
+   /etc/init.d/dnsmasq restart
+}
+
 start_service() {
     add_nft_rules
+
+    add_dnsmasq_domains
 
     procd_open_instance "$NAME"
     procd_set_param command "$PROG" $CIADPI_ARGS
@@ -43,4 +63,73 @@ reload_service() {
 
 stop_service() {
     del_nft_rules
+    flush_dnsmasq_rules
+}
+
+_process_domain_set() {
+    local output_file="$1"
+    local nft_set_name="$2"
+    shift 2
+    local domains_urls_list="$@"
+
+    local curl_failed_count=0
+    local urls_count=0
+    local downloaded_content=""
+
+    rm -f "$output_file"
+    echo "Processing set: $nft_set_name -> $output_file" >&2
+    > "$output_file"
+
+    for domain_single_url in $domains_urls_list; do
+        urls_count=$((urls_count + 1))
+        echo "Downloading from $domain_single_url for $nft_set_name..." >&2
+        current_domain_download=$(curl -sSLf "$domain_single_url")
+        curl_exit_code=$?
+
+        if [ "$curl_exit_code" -ne 0 ]; then
+            echo "Warning: curl failed for $domain_single_url (exit: $curl_exit_code) for $nft_set_name." >&2
+            curl_failed_count=$((curl_failed_count + 1))
+        elif [ -n "$current_domain_download" ]; then
+            downloaded_content="${downloaded_content}${current_domain_download}\n"
+        else
+            echo "Warning: Downloaded content from $domain_single_url for $nft_set_name is empty." >&2
+        fi
+    done
+
+    if [ "$urls_count" -gt 0 ] && [ "$curl_failed_count" -eq "$urls_count" ]; then
+        echo "Error: All downloads failed for $nft_set_name. Output file $output_file will be empty." >&2
+        return 1
+    fi
+
+    if [ -z "$downloaded_content" ] && [ "$urls_count" -gt 0 ]; then
+        echo "Warning: All downloaded content was empty for $nft_set_name. Output file $output_file will be empty." >&2
+    fi
+
+    printf "%b" "$downloaded_content" | awk -v nft_family="$NFT_FAMILY" -v nft_table="$NFT_TABLE" -v nft_set="$nft_set_name" '
+        NF > 0 {
+            $1 = $1;
+            print "nftset=/" $0 "/4#" nft_family "#" nft_table "#" nft_set
+        }
+    ' > "$output_file"
+
+    # printf "%b" "$downloaded_content" | awk -v nft_family="$NFT_FAMILY" -v nft_table="$NFT_TABLE" -v nft_set="$nft_set_name" '
+    #     NF > 0 {
+    #         $1 = $1;
+    #         print "nftset=/" $0 "/4#" nft_family "#" nft_table "#" nft_set
+    #         print "address=/" $0 "/::"
+    #     }
+    # ' > "$output_file"
+
+    if [ ! -s "$output_file" ]; then
+        echo "Warning: Output file $output_file for $nft_set_name is empty after processing." >&2
+        return 1
+    fi
+
+    if dnsmasq --conf-file="$output_file" --test 2>&1 | grep -q "syntax check OK"; then
+        return 0
+    else
+        echo "Error: Dnsmasq syntax check FAILED for $output_file. Removing problematic file." >&2
+        rm -f "$output_file"
+        return 1
+    fi
 }
