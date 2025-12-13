@@ -30,13 +30,6 @@ start () {
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/twitter.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/discord.lst"
 
-    nft flush set "$NFT_FAMILY" "$NFT_TABLE" "dpi_domains"
-
-    _process_domain_set \
-        "/tmp/dnsmasq.d/03_dpi_services.lst" \
-        "dpi_domains" \
-        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/youtube.lst"
-
     echo "Processing complete. Restarting dnsmasq." >&2
     /etc/init.d/dnsmasq restart
     exit 0
