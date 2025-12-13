@@ -15,11 +15,11 @@ start () {
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/geoblock.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/google_ai.lst"
 
-    nft flush set "$NFT_FAMILY" "$NFT_TABLE" "youtube_domains"
+    nft flush set "$NFT_FAMILY" "$NFT_TABLE" "warp_domains"
 
     _process_domain_set \
         "/tmp/dnsmasq.d/01_entertainment_services.lst" \
-        "youtube_domains" \
+        "warp_domains" \
         "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set2.txt" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/block.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/porn.lst"  \
@@ -30,9 +30,12 @@ start () {
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/twitter.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/discord.lst"
 
- 	_process_ip_set \
- 		"youtube_domains" \
- 		"https://raw.githubusercontent.com/GhostRooter0953/discord-voice-ips/refs/heads/master/voice_domains/discord-voice-ip-list"
+    nft flush set "$NFT_FAMILY" "$NFT_TABLE" "dpi_domains"
+
+    _process_domain_set \
+        "/tmp/dnsmasq.d/03_dpi_services.lst" \
+        "dpi_domains" \
+        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/youtube.lst"
 
     echo "Processing complete. Restarting dnsmasq." >&2
     /etc/init.d/dnsmasq restart
@@ -82,9 +85,16 @@ _process_domain_set() {
         NF > 0 {
             $1 = $1;
             print "nftset=/" $0 "/4#" nft_family "#" nft_table "#" nft_set
-            print "address=/" $0 "/::"
         }
     ' > "$output_file"
+
+    # printf "%b" "$downloaded_content" | awk -v nft_family="$NFT_FAMILY" -v nft_table="$NFT_TABLE" -v nft_set="$nft_set_name" '
+    #     NF > 0 {
+    #         $1 = $1;
+    #         print "nftset=/" $0 "/4#" nft_family "#" nft_table "#" nft_set
+    #         print "address=/" $0 "/::"
+    #     }
+    # ' > "$output_file"
 
     if [ ! -s "$output_file" ]; then
         echo "Warning: Output file $output_file for $nft_set_name is empty after processing." >&2
