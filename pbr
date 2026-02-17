@@ -20,15 +20,25 @@ start () {
     _process_domain_set \
         "/tmp/dnsmasq.d/01_entertainment_services.lst" \
         "warp_domains" \
-        "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set2.txt" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/block.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/porn.lst"  \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/tiktok.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/anime.lst" \
-        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/meta.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/news.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/twitter.lst" \
-        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/discord.lst"
+        "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set2.txt"
+
+       # "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/discord.lst" \
+        # "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/cloudfront.lst" \
+ 
+    _process_ip_set \
+    	"warp_domains" \
+    	"https://core.telegram.org/resources/cidr.txt"
+
+    _process_ip_set \
+    	"warp_domains" \
+    	"https://raw.githubusercontent.com/routir/unblock/refs/heads/main/services/viber-ip-de.lst"
+
 
     echo "Processing complete. Restarting dnsmasq." >&2
     /etc/init.d/dnsmasq restart
@@ -80,7 +90,7 @@ _process_domain_set() {
             print "nftset=/" $0 "/4#" nft_family "#" nft_table "#" nft_set
         }
     ' > "$output_file"
-
+    
     # printf "%b" "$downloaded_content" | awk -v nft_family="$NFT_FAMILY" -v nft_table="$NFT_TABLE" -v nft_set="$nft_set_name" '
     #     NF > 0 {
     #         $1 = $1;
