@@ -1,0 +1,43 @@
+#!/bin/sh /etc/rc.common
+
+START=99
+
+LIST_URL="https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/tiktok.lst"
+OUTPUT_FILE="/tmp/dnsmasq.d/04_tiktok_custom_dns.lst"
+DNS_1="84.21.189.133"
+DNS_2="193.23.209.189"
+
+start() {
+    echo "Service tiktok_dns: Downloading domain list..."
+
+    content=$(curl -sSL --connect-timeout 15 "$LIST_URL")
+    ret=$?
+
+    if [ "$ret" -eq 0 ] && [ -n "$content" ]; then
+        echo "Service tiktok_dns: Processing list..."
+
+        echo "$content" | awk -v d1="$DNS_1" -v d2="$DNS_2" '
+            NF > 0 {
+                $1=$1;
+                sub(/\r$/, "");
+                print "server=/" $1 "/" d1
+                print "server=/" $1 "/" d2
+            }
+        ' > "$OUTPUT_FILE"
+
+        if [ -s "$OUTPUT_FILE" ]; then
+            echo "Service tiktok_dns: List updated. Restarting dnsmasq."
+            /etc/init.d/dnsmasq restart
+        else
+             echo "Service tiktok_dns: Error. Processed file is empty."
+        fi
+    else
+        echo "Service tiktok_dns: Error downloading list (curl code: $ret)."
+    fi
+}
+
+stop() {
+    echo "Service tiktok_dns: Cleaning up..."
+    rm -f "$OUTPUT_FILE"
+    /etc/init.d/dnsmasq restart
+}
