@@ -8,8 +8,6 @@ MAGIC_IP="10.9.1.2"
 start () {
     echo "Starting domain lists update..." >&2
 
-    mkdir -p "/tmp/sing-box/"
-
     _process_domain_set \
         "vpn" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/geoblock.lst" \
@@ -44,6 +42,10 @@ _process_domain_set() {
     local downloaded_content=""
 
     echo "Processing $list_name domains..." >&2
+
+    if [ ! -d "/tmp/sing-box/" ]; then
+        mkdir -p "/tmp/sing-box/"
+    fi
 
     rm -f "/tmp/dnsmasq.d/00_${list_name}.conf"
     echo '{"version": 1, "rules": []}' > "/tmp/sing-box/${list_name}.json"
