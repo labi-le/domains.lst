@@ -1,115 +1,87 @@
 #!/bin/sh /etc/rc.common
 
 START=99
-
 NFT_FAMILY="inet"
 NFT_TABLE="fw4"
+MAGIC_IP="10.9.1.2"
 
 start () {
-    nft flush set "$NFT_FAMILY" "$NFT_TABLE" "vpn_domains"
+    echo "Starting domain lists update..." >&2
+
+    mkdir -p "/tmp/sing-box/"
 
     _process_domain_set \
-        "/tmp/dnsmasq.d/02_ai_services.lst" \
-        "vpn_domains" \
-        "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set1.txt" \
+        "vpn" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/geoblock.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/google_ai.lst"
 
-    nft flush set "$NFT_FAMILY" "$NFT_TABLE" "warp_domains"
-
     _process_domain_set \
-        "/tmp/dnsmasq.d/01_entertainment_services.lst" \
-        "warp_domains" \
+        "warp" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/block.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/porn.lst"  \
-        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/tiktok.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/anime.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/news.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/twitter.lst" \
-        "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set2.txt"
+        "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/meta.lst" \
+        "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set1.txt"
 
-       # "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/discord.lst" \
-        # "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/cloudfront.lst" \
- 
-    _process_ip_set \
-    	"warp_domains" \
-    	"https://core.telegram.org/resources/cidr.txt"
+    nft flush set "$NFT_FAMILY" "$NFT_TABLE" "warp_domains"
 
-    _process_ip_set \
-    	"warp_domains" \
-    	"https://raw.githubusercontent.com/routir/unblock/refs/heads/main/services/viber-ip-de.lst"
+    _process_ip_set "warp_domains" "https://core.telegram.org/resources/cidr.txt"
+    _process_ip_set "warp_domains" "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/faf-cf.txt"
+    _process_ip_set "warp_domains" "https://raw.githubusercontent.com/routir/unblock/refs/heads/main/services/viber-ip-de.lst"
 
-
-    echo "Processing complete. Restarting dnsmasq." >&2
+    echo "Restarting services..." >&2
     /etc/init.d/dnsmasq restart
+    /etc/init.d/sing-box restart
     exit 0
 }
 
 _process_domain_set() {
-    local output_file="$1"
-    local nft_set_name="$2"
-    shift 2
-    local domains_urls_list="$@"
-
-    local curl_failed_count=0
-    local urls_count=0
+    local list_name="$1"
+    shift 1
+    local urls_list="$@"
     local downloaded_content=""
 
-    rm -f "$output_file"
-    echo "Processing set: $nft_set_name -> $output_file" >&2
-    > "$output_file"
+    echo "Processing $list_name domains..." >&2
 
-    for domain_single_url in $domains_urls_list; do
-        urls_count=$((urls_count + 1))
-        echo "Downloading from $domain_single_url for $nft_set_name..." >&2
-        current_domain_download=$(curl -sSLf "$domain_single_url")
-        curl_exit_code=$?
+    rm -f "/tmp/dnsmasq.d/00_${list_name}.conf"
+    echo '{"version": 1, "rules": []}' > "/tmp/sing-box/${list_name}.json"
 
-        if [ "$curl_exit_code" -ne 0 ]; then
-            echo "Warning: curl failed for $domain_single_url (exit: $curl_exit_code) for $nft_set_name." >&2
-            curl_failed_count=$((curl_failed_count + 1))
-        elif [ -n "$current_domain_download" ]; then
-            downloaded_content="${downloaded_content}${current_domain_download}\n"
-        else
-            echo "Warning: Downloaded content from $domain_single_url for $nft_set_name is empty." >&2
+    for url in $urls_list; do
+        local attempt=1
+        local max_attempts=5
+        local success=0
+
+        while [ "$attempt" -le "$max_attempts" ]; do
+            current_download=$(curl --connect-timeout 5 --max-time 15 -sSLf "$url")
+            if [ $? -eq 0 ] && [ -n "$current_download" ]; then
+                downloaded_content="${downloaded_content}${current_download}\n"
+                success=1
+                break
+            fi
+            echo "  - Error fetching $url. Retrying ($attempt/$max_attempts) in 3s..." >&2
+            sleep 3
+            attempt=$((attempt + 1))
+        done
+
+        if [ "$success" -eq 0 ]; then
+             echo "  ! Giving up on $url after $max_attempts attempts." >&2
         fi
     done
 
-    if [ "$urls_count" -gt 0 ] && [ "$curl_failed_count" -eq "$urls_count" ]; then
-        echo "Error: All downloads failed for $nft_set_name. Output file $output_file will be empty." >&2
-        return 1
-    fi
+    clean_list=$(printf "%b" "$downloaded_content" | awk 'NF>0 && !/^#/{print $1}' | sort -u)
 
-    if [ -z "$downloaded_content" ] && [ "$urls_count" -gt 0 ]; then
-        echo "Warning: All downloaded content was empty for $nft_set_name. Output file $output_file will be empty." >&2
-    fi
+    if [ -n "$clean_list" ]; then
+        echo "$clean_list" | awk -v ip="$MAGIC_IP" '{print "address=/" $1 "/" ip}' > "/tmp/dnsmasq.d/00_${list_name}.conf"
 
-    printf "%b" "$downloaded_content" | awk -v nft_family="$NFT_FAMILY" -v nft_table="$NFT_TABLE" -v nft_set="$nft_set_name" '
-        NF > 0 {
-            $1 = $1;
-            print "nftset=/" $0 "/4#" nft_family "#" nft_table "#" nft_set
-        }
-    ' > "$output_file"
-    
-    # printf "%b" "$downloaded_content" | awk -v nft_family="$NFT_FAMILY" -v nft_table="$NFT_TABLE" -v nft_set="$nft_set_name" '
-    #     NF > 0 {
-    #         $1 = $1;
-    #         print "nftset=/" $0 "/4#" nft_family "#" nft_table "#" nft_set
-    #         print "address=/" $0 "/::"
-    #     }
-    # ' > "$output_file"
+        echo "$clean_list" | awk '
+            BEGIN { printf "{\"version\": 1, \"rules\": [{\"domain_suffix\": [" }
+            { if (NR>1) printf ","; printf "\"%s\"", $1 }
+            END { print "]}]}" }
+        ' > "/tmp/sing-box/${list_name}.json"
 
-    if [ ! -s "$output_file" ]; then
-        echo "Warning: Output file $output_file for $nft_set_name is empty after processing." >&2
-        return 1
-    fi
-
-    if dnsmasq --conf-file="$output_file" --test 2>&1 | grep -q "syntax check OK"; then
-        return 0
-    else
-        echo "Error: Dnsmasq syntax check FAILED for $output_file. Removing problematic file." >&2
-        rm -f "$output_file"
-        return 1
+        echo "Successfully generated rules for $list_name." >&2
     fi
 }
 
@@ -117,65 +89,32 @@ _process_ip_set() {
     local nft_set_name="$1"
     local ip_url="$2"
     shift 2
-    local exclude_urls="$@"
-
     local downloaded_content=""
-    local filtered_content=""
-    local ip_list_formatted=""
-    local exclude_cidrs=""
 
-    echo "Processing IP set: $nft_set_name" >&2
-    echo "Downloading from '$ip_url'..." >&2
+    echo "Processing IP set: $nft_set_name ($ip_url)" >&2
 
-    downloaded_content=$(curl --connect-timeout 5 --max-time 15 -sSLf "$ip_url")
-    if [ "$?" -ne 0 ]; then
-        echo "Warning: curl failed for '$ip_url'." >&2
+    local attempt=1
+    local max_attempts=5
+
+    while [ "$attempt" -le "$max_attempts" ]; do
+        downloaded_content=$(curl --connect-timeout 5 --max-time 15 -sSLf "$ip_url")
+        if [ $? -eq 0 ] && [ -n "$downloaded_content" ]; then
+            break
+        fi
+        echo "  - Error fetching IP list. Retrying ($attempt/$max_attempts) in 3s..." >&2
+        sleep 3
+        attempt=$((attempt + 1))
+    done
+
+    if [ -z "$downloaded_content" ]; then
+        echo "  ! Giving up on IP list after $max_attempts attempts." >&2
         return 1
     fi
 
-    downloaded_content=$(echo "$downloaded_content" | grep -v ":")
+    downloaded_content=$(echo "$downloaded_content" | tr -d '\r' | grep -v ":")
+    ip_list_formatted=$(echo "$downloaded_content" | awk 'NF > 0 { printf "%s,", $1 }' | sed 's/,$//')
 
-    if [ -n "$exclude_urls" ]; then
-        for url in $exclude_urls; do
-            echo "Downloading exclusion list from '$url'..." >&2
-            exclude_part=$(curl --connect-timeout 5 --max-time 15 -sSLf "$url")
-            if [ "$?" -ne 0 ]; then
-                echo "Warning: curl failed for '$url'. Exclusions from this file will not be applied." >&2
-            else
-                exclude_cidrs="${exclude_cidrs}${exclude_part}\n"
-            fi
-        done
-    fi
-
-    exclude_cidrs=$(printf "%b" "$exclude_cidrs" | awk 'NF > 0' | sort -u)
-
-    filtered_content="$downloaded_content"
-    if [ -n "$exclude_cidrs" ]; then
-        while read -r excl; do
-            if [ -n "$excl" ]; then
-                if echo "$filtered_content" | grep -qxF "$excl"; then
-                    echo "Exclusion match: '$excl' found and will be removed from '$nft_set_name'." >&2
-                fi
-                filtered_content=$(echo "$filtered_content" | grep -vxF "$excl")
-            fi
-        done <<EOF
-$exclude_cidrs
-EOF
-    fi
-
-    ip_list_formatted=$(echo "$filtered_content" | awk 'NF > 0 { printf "%s,", $1 }' | sed 's/,$//')
-
-    if [ -z "$ip_list_formatted" ]; then
-        echo "Error: IP list for '$nft_set_name' is empty after processing." >&2
-        return 1
-    fi
-
-    echo "Adding elements to nft set '$nft_set_name'..." >&2
-    if nft add element "$NFT_FAMILY" "$NFT_TABLE" "$nft_set_name" "{ $ip_list_formatted }"; then
-        echo "Successfully updated nft set '$nft_set_name'." >&2
-        return 0
-    else
-        echo "FATAL: Failed to update nft set '$nft_set_name'." >&2
-        return 1
+    if [ -n "$ip_list_formatted" ]; then
+        nft add element "$NFT_FAMILY" "$NFT_TABLE" "$nft_set_name" "{ $ip_list_formatted }" 2>/dev/null
     fi
 }
