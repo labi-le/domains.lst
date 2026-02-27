@@ -17,10 +17,10 @@
       "type": "tun",
       "interface_name": "tun0",
       "domain_strategy": "ipv4_only",
-      "address": "10.9.1.1/30",
+      "address": "198.18.1.1/30",
       "auto_route": true,
       "route_address": [
-        "10.9.1.2/32"
+        "198.18.1.2/32"
       ],
       "strict_route": false,
       "sniff": true,
