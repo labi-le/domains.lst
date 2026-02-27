@@ -46,16 +46,9 @@ ip route replace table vpn default dev tun0
 #### iproute2
 ```sh
 echo '99 vpn' >> /etc/iproute2/rt_tables
-echo '98 youtube' >> /etc/iproute2/rt_tables
 ```
 
-#### dpi
-```
-opkg install "https://github.com/spvkgn/ByeDPI-OpenWrt/releases/download/v0.17-24.10/byedpi_0.17-r1_$(awk -F\' '/DISTRIB_ARCH/ {print $2}' /etc/openwrt_release).ipk"
-```
+#### packages
 ```sh
-wget https://raw.githubusercontent.com/labi-le/domains.lst/main/dpi -O /etc/init.d/dpi &&
-chmod +x /etc/init.d/dpi &&
-service dpi enable &&
-service dpi start
+opkg install dnsmasq-full sing-box kmod-tun stubby ca-bundle curl amneziawg-tools kmod-amneziawg
 ```
