@@ -3,7 +3,7 @@
 START=99
 NFT_FAMILY="inet"
 NFT_TABLE="fw4"
-MAGIC_IP="10.9.1.2"
+MAGIC_IP="198.18.1.2"
 
 start () {
     echo "Starting domain lists update..." >&2
