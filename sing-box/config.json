@@ -1,0 +1,72 @@
+{
+  "log": {
+    "level": "info"
+  },
+  "dns": {
+    "servers": [
+      {
+        "tag": "dns-stubby",
+        "type": "udp",
+        "server": "127.0.0.1",
+        "server_port": 5453
+      }
+    ]
+  },
+  "inbounds": [
+    {
+      "type": "tun",
+      "interface_name": "tun0",
+      "domain_strategy": "ipv4_only",
+      "address": "10.9.1.1/30",
+      "auto_route": true,
+      "route_address": [
+        "10.9.1.2/32"
+      ],
+      "strict_route": false,
+      "sniff": true,
+      "sniff_override_destination": true
+    }
+  ],
+  "outbounds": [
+    {
+      
+    },
+    {
+      "type": "direct",
+      "tag": "out-warp",
+      "bind_interface": "awg1"
+    },
+    {
+      "type": "direct",
+      "tag": "direct"
+    }
+  ],
+  "route": {
+    "default_domain_resolver": "dns-stubby",
+    "rule_set": [
+      {
+        "tag": "rules-vpn",
+        "type": "local",
+        "format": "source",
+        "path": "/tmp/sing-box/vpn.json"
+      },
+      {
+        "tag": "rules-warp",
+        "type": "local",
+        "format": "source",
+        "path": "/tmp/sing-box/warp.json"
+      }
+    ],
+    "rules": [
+      {
+        "rule_set": ["rules-vpn"],
+        "outbound": "out-vpn"
+      },
+      {
+        "rule_set": ["rules-warp"],
+        "outbound": "out-warp"
+      }
+    ],
+    "final": "out-vpn"
+  }
+}
