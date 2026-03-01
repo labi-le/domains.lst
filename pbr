@@ -1,20 +1,29 @@
 #!/bin/sh /etc/rc.common
 
 START=99
+
 NFT_FAMILY="inet"
 NFT_TABLE="fw4"
-MAGIC_IP="198.18.1.2"
+
+FAKEIP_SUBNET="198.18.1.0/28"
+TPROXY_MARK="0x1"
+
+IP_VPN="198.18.1.2"
+PORT_VPN="12342"
+
+IP_WARP="198.18.1.3"
+PORT_WARP="12343"
 
 start () {
-    echo "Starting domain lists update..." >&2
+    echo "Starting domain lists update and routing setup..." >&2
 
-    _process_domain_set \
-        "vpn" \
+    _setup_tproxy "${IP_VPN}:${PORT_VPN}" "${IP_WARP}:${PORT_WARP}"
+
+    _process_domain_set "vpn" "$IP_VPN" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/geoblock.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/google_ai.lst"
 
-    _process_domain_set \
-        "warp" \
+    _process_domain_set "warp" "$IP_WARP" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/block.lst" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/porn.lst"  \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/anime.lst" \
@@ -23,7 +32,7 @@ start () {
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/meta.lst" \
         "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set1.txt"
 
-    nft flush set "$NFT_FAMILY" "$NFT_TABLE" "warp_domains"
+    nft flush set "$NFT_FAMILY" "$NFT_TABLE" "warp_domains" 2>/dev/null || true
 
     _process_ip_set "warp_domains" "https://core.telegram.org/resources/cidr.txt"
     _process_ip_set "warp_domains" "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/faf-cf.txt"
@@ -32,23 +41,40 @@ start () {
     echo "Restarting services..." >&2
     /etc/init.d/dnsmasq restart
     /etc/init.d/sing-box restart
+
     exit 0
+}
+
+_setup_tproxy() {
+    echo "Setting up TPROXY rules in nftables..." >&2
+
+    nft delete chain "$NFT_FAMILY" "$NFT_TABLE" prerouting_tproxy 2>/dev/null
+    nft add chain "$NFT_FAMILY" "$NFT_TABLE" prerouting_tproxy { type filter hook prerouting priority mangle \; policy accept \; }
+
+    nft add rule "$NFT_FAMILY" "$NFT_TABLE" prerouting_tproxy ip daddr "$FAKEIP_SUBNET" meta mark set "$TPROXY_MARK"
+
+    for mapping in "$@"; do
+        local ip="${mapping%%:*}"
+        local port="${mapping##*:}"
+
+        nft add rule "$NFT_FAMILY" "$NFT_TABLE" prerouting_tproxy ip daddr "$ip" meta l4proto tcp tproxy ip to ":$port" accept
+        nft add rule "$NFT_FAMILY" "$NFT_TABLE" prerouting_tproxy ip daddr "$ip" meta l4proto udp tproxy ip to ":$port" accept
+    done
 }
 
 _process_domain_set() {
     local list_name="$1"
-    shift 1
+    local target_ip="$2"
+    shift 2
     local urls_list="$@"
     local downloaded_content=""
 
-    echo "Processing $list_name domains..." >&2
+    echo "Processing $list_name domains to $target_ip..." >&2
 
-    if [ ! -d "/tmp/sing-box/" ]; then
-        mkdir -p "/tmp/sing-box/"
+    if [ ! -d "/tmp/dnsmasq.d/" ]; then
+        mkdir -p "/tmp/dnsmasq.d/"
     fi
-
     rm -f "/tmp/dnsmasq.d/00_${list_name}.conf"
-    echo '{"version": 1, "rules": []}' > "/tmp/sing-box/${list_name}.json"
 
     for url in $urls_list; do
         local attempt=1
@@ -75,14 +101,7 @@ _process_domain_set() {
     clean_list=$(printf "%b" "$downloaded_content" | awk 'NF>0 && !/^#/{print $1}' | sort -u)
 
     if [ -n "$clean_list" ]; then
-        echo "$clean_list" | awk -v ip="$MAGIC_IP" '{print "address=/" $1 "/" ip}' > "/tmp/dnsmasq.d/00_${list_name}.conf"
-
-        echo "$clean_list" | awk '
-            BEGIN { printf "{\"version\": 1, \"rules\": [{\"domain_suffix\": [" }
-            { if (NR>1) printf ","; printf "\"%s\"", $1 }
-            END { print "]}]}" }
-        ' > "/tmp/sing-box/${list_name}.json"
-
+        echo "$clean_list" | awk -v ip="$target_ip" '{print "address=/" $1 "/" ip}' > "/tmp/dnsmasq.d/00_${list_name}.conf"
         echo "Successfully generated rules for $list_name." >&2
     fi
 }
@@ -97,7 +116,6 @@ _process_ip_set() {
 
     local attempt=1
     local max_attempts=5
-
     while [ "$attempt" -le "$max_attempts" ]; do
         downloaded_content=$(curl --connect-timeout 5 --max-time 15 -sSLf "$ip_url")
         if [ $? -eq 0 ] && [ -n "$downloaded_content" ]; then
