@@ -10,25 +10,31 @@
         "server": "127.0.0.1",
         "server_port": 5453
       }
-    ]
+    ],
+    "final": "dns-stubby",
+    "independent_cache": true
   },
   "inbounds": [
     {
-      "type": "tun",
-      "interface_name": "tun0",
-      "domain_strategy": "ipv4_only",
-      "address": "198.18.1.1/30",
-      "auto_route": true,
-      "route_address": [
-        "198.18.1.2/32"
-      ],
-      "strict_route": false,
+      "type": "tproxy",
+      "tag": "tproxy-vpn",
+      "listen": "0.0.0.0",
+      "listen_port": 12342,
+      "sniff": true,
+      "sniff_override_destination": true
+    },
+    {
+      "type": "tproxy",
+      "tag": "tproxy-warp",
+      "listen": "0.0.0.0",
+      "listen_port": 12343,
       "sniff": true,
       "sniff_override_destination": true
     }
   ],
   "outbounds": [
     {
+
       
     },
     {
@@ -42,31 +48,16 @@
     }
   ],
   "route": {
-    "default_domain_resolver": "dns-stubby",
-    "rule_set": [
-      {
-        "tag": "rules-vpn",
-        "type": "local",
-        "format": "source",
-        "path": "/tmp/sing-box/vpn.json"
-      },
-      {
-        "tag": "rules-warp",
-        "type": "local",
-        "format": "source",
-        "path": "/tmp/sing-box/warp.json"
-      }
-    ],
     "rules": [
       {
-        "rule_set": ["rules-vpn"],
+        "inbound": "tproxy-vpn",
         "outbound": "out-vpn"
       },
       {
-        "rule_set": ["rules-warp"],
+        "inbound": "tproxy-warp",
         "outbound": "out-warp"
       }
     ],
-    "final": "out-vpn"
+    "final": "direct"
   }
 }
