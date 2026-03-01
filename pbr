@@ -15,9 +15,10 @@ IP_WARP="198.18.1.3"
 PORT_WARP="12343"
 
 start () {
-    echo "Starting domain lists update and routing setup..." >&2
-
-    _setup_tproxy "${IP_VPN}:${PORT_VPN}" "${IP_WARP}:${PORT_WARP}"
+    _generate_tproxy_nft \
+    	"/etc/nftables.d/99-tproxy.nft" \
+    	"${IP_VPN}:${PORT_VPN}" \
+    	"${IP_WARP}:${PORT_WARP}"
 
     _process_domain_set "vpn" "$IP_VPN" \
         "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/geoblock.lst" \
@@ -43,23 +44,6 @@ start () {
     /etc/init.d/sing-box restart
 
     exit 0
-}
-
-_setup_tproxy() {
-    echo "Setting up TPROXY rules in nftables..." >&2
-
-    nft delete chain "$NFT_FAMILY" "$NFT_TABLE" prerouting_tproxy 2>/dev/null
-    nft add chain "$NFT_FAMILY" "$NFT_TABLE" prerouting_tproxy { type filter hook prerouting priority mangle \; policy accept \; }
-
-    nft add rule "$NFT_FAMILY" "$NFT_TABLE" prerouting_tproxy ip daddr "$FAKEIP_SUBNET" meta mark set "$TPROXY_MARK"
-
-    for mapping in "$@"; do
-        local ip="${mapping%%:*}"
-        local port="${mapping##*:}"
-
-        nft add rule "$NFT_FAMILY" "$NFT_TABLE" prerouting_tproxy ip daddr "$ip" meta l4proto tcp tproxy ip to ":$port" accept
-        nft add rule "$NFT_FAMILY" "$NFT_TABLE" prerouting_tproxy ip daddr "$ip" meta l4proto udp tproxy ip to ":$port" accept
-    done
 }
 
 _process_domain_set() {
@@ -136,5 +120,40 @@ _process_ip_set() {
 
     if [ -n "$ip_list_formatted" ]; then
         nft add element "$NFT_FAMILY" "$NFT_TABLE" "$nft_set_name" "{ $ip_list_formatted }" 2>/dev/null
+    fi
+}
+
+_generate_tproxy_nft() {
+    local target_file="$1"
+    shift
+
+    local target_dir
+    target_dir=$(dirname "$target_file")
+    [ ! -d "$target_dir" ] && mkdir -p "$target_dir"
+
+    local new_content
+    new_content=$(awk -v subnet="$FAKEIP_SUBNET" -v mark="$TPROXY_MARK" '
+    BEGIN {
+        print "chain prerouting_tproxy {"
+        print "\ttype filter hook prerouting priority mangle; policy accept;"
+        print ""
+        print "\tip daddr " subnet " meta mark set " mark
+
+        for (i = 1; i < ARGC; i++) {
+            split(ARGV[i], a, ":")
+            print "\tip daddr " a[1] " meta l4proto { tcp, udp } tproxy ip to :" a[2] " accept"
+        }
+        print "}"
+
+        ARGC = 1
+    }' "$@")
+
+    if printf "%s\n" "$new_content" | cmp -s - "$target_file" 2>/dev/null; then
+        return 0
+    else
+        echo "Updating TPROXY rules in $target_file..." >&2
+        printf "%s\n" "$new_content" > "$target_file"
+
+        fw4 reload
     fi
 }
