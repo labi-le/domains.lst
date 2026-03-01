@@ -1,6 +1,6 @@
 {
   "log": {
-    "level": "info"
+    "level": "warn"
   },
   "dns": {
     "servers": [
@@ -11,8 +11,7 @@
         "server_port": 5453
       }
     ],
-    "final": "dns-stubby",
-    "independent_cache": true
+    "final": "dns-stubby"
   },
   "inbounds": [
     {
@@ -48,6 +47,7 @@
     }
   ],
   "route": {
+    "default_domain_resolver": "dns-stubby",
     "rules": [
       {
         "inbound": "tproxy-vpn",
