@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
 
+if [ -z "$1" ] && [ -t 0 ]; then
+    echo "Error: No configuration provided!"
+    echo "Usage:"
+    echo "  $0 <awg.conf> [iface_name]"
+    echo "  $0 < awg.conf"
+    echo "  cat awg.conf | $0"
+    exit 1
+fi
+
 if [ -n "$1" ]; then
     INPUT_SOURCE="$1"
 else
@@ -18,7 +27,6 @@ BEGIN {
 {
     if ($0 ~ /^[ \t]*$/ || $0 ~ /^[ \t]*#/) next
 
-    # Определяем текущую секцию
     if ($0 ~ /^\[.*\]$/) {
         if ($0 ~ /\[Interface\]/) section = "Interface"
         else if ($0 ~ /\[Peer\]/) section = "Peer"
