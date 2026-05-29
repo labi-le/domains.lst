@@ -9,4 +9,5 @@ genimport.org
 ipinfo.io
 g2a.com
 cachix.org
+cache.garnix.io
 supporter-files.nexus-cdn.com
