@@ -8,3 +8,4 @@ genimport.org
 ipinfo.io
 g2a.com
 ifconfig.io
+mcp.context7.com
