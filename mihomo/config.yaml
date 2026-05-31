@@ -1,0 +1,80 @@
+mode: rule
+allow-lan: true
+bind-address: "*"
+log-level: info
+ipv6: false
+tproxy-port: 12342
+
+iptables:
+  inbound-interface: br-lan
+
+proxies:
+  - name: VPN
+    type: direct
+    udp: true
+    interface-name: awg2
+
+  - name: WARP
+    type: direct
+    udp: true
+    interface-name: awg1
+
+dns:
+  enable: true
+  listen: 0.0.0.0:12344
+  ipv6: false
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.1.0/28
+  fake-ip-filter:
+    - "+.lan"
+    - "+.local"
+  nameserver:
+    - 127.0.0.1:5453
+
+proxy-providers:
+  mos-eu:
+    type: http
+    url: "https://hub.mos.ru/zieng2/wl/raw/main/list_universal.txt"
+    path: ./providers/mos-eu.yaml
+    interval: 21600
+    health-check:
+      enable: true
+      url: https://www.gstatic.com/generate_204
+      interval: 300
+
+proxy-groups:
+  - name: VPN-SUB-EU
+    type: url-test
+    use:
+      - mos-eu
+    url: https://ifconfig.io/
+    interval: 300
+    tolerance: 150
+    filter: "(?i)(Estonia|Finland|Lithuania|Latvia|Poland|Germany|Netherlands|Czechia|Sweden|Norway|Denmark)"
+
+  - name: VPN-PREFERRED
+    type: fallback
+    proxies:
+      - VPN-SUB-EU
+      - VPN
+    url: https://ifconfig.io/
+    interval: 300
+    tolerance: 150
+
+rule-providers:
+  vpn:
+    type: file
+    path: ./rules/vpn.txt
+    behavior: classical
+    format: text
+
+  warp:
+    type: file
+    path: ./rules/warp.txt
+    behavior: classical
+    format: text
+
+rules:
+  - RULE-SET,vpn,VPN-PREFERRED
+  - RULE-SET,warp,WARP
+  - MATCH,DIRECT

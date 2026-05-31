@@ -1,0 +1,6 @@
+config mihomo 'main'
+	option enabled '1'
+	option user 'root'
+	option conffile '/etc/mihomo/config.yaml'
+	option workdir '/tmp/mihomo'
+	option ifaces 'wan awg1 awg2'
