@@ -77,9 +77,9 @@ proxy-groups:
   - name: VPN-PREFERRED
     type: fallback
     proxies:
+      - VPN
       - VPN-SUB-VLESS
       - VPN-SUB-EU
-      - VPN
     url: https://ifconfig.io/
     interval: 300
     tolerance: 150
