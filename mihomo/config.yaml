@@ -48,8 +48,8 @@ proxy-providers:
     interval: 3600
     health-check:
       enable: true
-      url: https://youtube.com
-      interval: 300
+      url: "http://cp.cloudflare.com/generate_204"
+      interval: 60
 
   mos-eu:
     type: http
@@ -58,8 +58,8 @@ proxy-providers:
     interval: 3600
     health-check:
       enable: true
-      url: https://youtube.com
-      interval: 300
+      url: "http://cp.cloudflare.com/generate_204"
+      interval: 60
 
   mos-purple:
     type: http
@@ -68,8 +68,8 @@ proxy-providers:
     interval: 3600
     health-check:
       enable: true
-      url: https://youtube.com
-      interval: 300
+      url: "http://cp.cloudflare.com/generate_204"
+      interval: 60
 
 proxy-groups:
   - name: WARP
@@ -77,24 +77,24 @@ proxy-groups:
     proxies:
       - WARP-AWG1
       - WARP-AWG0
-    url: https://youtube.com
-    interval: 300
+    url: "http://cp.cloudflare.com/generate_204"
+    interval: 60
     tolerance: 150
 
   - name: VPN-SUB-VLESS
     type: url-test
     use:
       - vlessforu
-    url: https://youtube.com
-    interval: 300
+    url: "http://cp.cloudflare.com/generate_204"
+    interval: 60
     tolerance: 150
 
   - name: VPN-SUB-EU
     type: url-test
     use:
       - mos-eu
-    url: https://youtube.com
-    interval: 300
+    url: "http://cp.cloudflare.com/generate_204"
+    interval: 60
     tolerance: 150
     filter: "(?i)(Estonia|Finland|Lithuania|Latvia|Poland|Germany|Netherlands|Czechia|Sweden|Norway|Denmark)"
 
@@ -102,20 +102,20 @@ proxy-groups:
     type: url-test
     use:
       - mos-purple
-    url: https://youtube.com
-    interval: 300
+    url: "http://cp.cloudflare.com/generate_204"
+    interval: 60
     tolerance: 150
     filter: "(?i)(purple|💜)"
 
   - name: VPN-PREFERRED
     type: fallback
     proxies:
-      - VPN
-      - VPN-SUB-PURPLE
-      - VPN-SUB-VLESS
       - VPN-SUB-EU
-    url: https://youtube.com
-    interval: 300
+      - VPN-SUB-VLESS
+      - VPN-SUB-PURPLE
+      - VPN
+    url: "http://cp.cloudflare.com/generate_204"
+    interval: 60
     tolerance: 150
 
 rule-providers:
