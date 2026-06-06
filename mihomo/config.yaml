@@ -56,6 +56,16 @@ proxy-providers:
       url: https://www.gstatic.com/generate_204
       interval: 300
 
+  mos-purple:
+    type: http
+    url: "https://hub.mos.ru/panosenk/sukasubs/-/raw/main/purple.txt"
+    path: ./providers/mos-purple.yaml
+    interval: 21600
+    health-check:
+      enable: true
+      url: https://www.gstatic.com/generate_204
+      interval: 300
+
 proxy-groups:
   - name: VPN-SUB-VLESS
     type: url-test
@@ -74,10 +84,20 @@ proxy-groups:
     tolerance: 150
     filter: "(?i)(Estonia|Finland|Lithuania|Latvia|Poland|Germany|Netherlands|Czechia|Sweden|Norway|Denmark)"
 
+  - name: VPN-SUB-PURPLE
+    type: url-test
+    use:
+      - mos-purple
+    url: https://ifconfig.io/
+    interval: 300
+    tolerance: 150
+    filter: "(?i)(purple|💜)"
+
   - name: VPN-PREFERRED
     type: fallback
     proxies:
       - VPN
+      - VPN-SUB-PURPLE
       - VPN-SUB-VLESS
       - VPN-SUB-EU
     url: https://ifconfig.io/
