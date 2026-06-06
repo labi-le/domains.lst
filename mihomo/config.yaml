@@ -110,10 +110,10 @@ proxy-groups:
   - name: VPN-PREFERRED
     type: fallback
     proxies:
-      - VPN-SUB-EU
-      - VPN-SUB-VLESS
-      - VPN-SUB-PURPLE
       - VPN
+      - VPN-SUB-PURPLE
+      - VPN-SUB-VLESS
+      - VPN-SUB-EU
     url: "http://cp.cloudflare.com/generate_204"
     interval: 60
     tolerance: 150
