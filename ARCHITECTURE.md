@@ -23,6 +23,12 @@
 3. `mihomo` restores the original domain from its fake-IP mapping.
 4. `mihomo` applies routing rules and selects the outbound path.
 
+### Interfaces
+
+- `awg0`: Belarus VPN
+- `awg1`: Cloudflare WARP
+- `awg2`: Finland VPN
+
 ## Routing
 
 ### VPN Path
@@ -38,7 +44,9 @@
 ### WARP Path
 
 - `RULE-SET,warp` uses `WARP`.
-- `WARP` is a direct outbound bound to interface `awg1`.
+- `WARP` is a `fallback` group.
+- Primary path is `WARP-AWG1` bound to interface `awg1`.
+- If `WARP-AWG1` fails, fallback goes to `WARP-AWG0` bound to interface `awg0`.
 
 ### Direct Path
 

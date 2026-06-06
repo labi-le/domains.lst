@@ -126,7 +126,7 @@ Expected current routing behavior:
 
 - `vpn` domains -> `VPN-PREFERRED`
 - `VPN-PREFERRED` -> `VPN-SUB-EU` primary -> `VPN` (`awg2`) fallback
-- `warp` domains -> `WARP` (`awg1`)
+- `warp` domains -> `WARP` (`awg1` fallback to `awg0`)
 
 ## References
 

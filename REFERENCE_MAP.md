@@ -4,7 +4,7 @@
 
 | repo path | router path | role | state |
 | --- | --- | --- | --- |
-| `mihomo/config.yaml` | `/etc/mihomo/config.yaml` | Main Mihomo static config | static |
+| `mihomo/config.yaml` | `/etc/mihomo/config.yaml` | Main Mihomo static config (awg0=BY, awg1=WARP, awg2=FI) | static |
 | `mihomo/init.d` | `/etc/init.d/mihomo` | Procd service script for Mihomo | static |
 | `mihomo/config` | `/etc/config/mihomo` | UCI service settings for Mihomo | static |
 | `pbr` | `/etc/init.d/pbr` | Regenerates rule-provider files and WARP IP set, then restarts Mihomo | static |

@@ -14,10 +14,15 @@ proxies:
     udp: true
     interface-name: awg2
 
-  - name: WARP
+  - name: WARP-AWG1
     type: direct
     udp: true
     interface-name: awg1
+
+  - name: WARP-AWG0
+    type: direct
+    udp: true
+    interface-name: awg0
 
 dns:
   enable: true
@@ -67,6 +72,15 @@ proxy-providers:
       interval: 300
 
 proxy-groups:
+  - name: WARP
+    type: fallback
+    proxies:
+      - WARP-AWG1
+      - WARP-AWG0
+    url: https://youtube.com
+    interval: 300
+    tolerance: 150
+
   - name: VPN-SUB-VLESS
     type: url-test
     use:
