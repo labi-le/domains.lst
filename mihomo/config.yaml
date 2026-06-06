@@ -24,7 +24,7 @@ dns:
   listen: 0.0.0.0:12344
   ipv6: false
   enhanced-mode: fake-ip
-  fake-ip-range: 198.18.1.0/28
+  fake-ip-range: 198.18.1.0/24
   fake-ip-filter-mode: rule
   fake-ip-filter:
     - DOMAIN-SUFFIX,lan,real-ip
@@ -40,30 +40,30 @@ proxy-providers:
     type: http
     url: "https://raw.githubusercontent.com/bobrinaw/vlessforu/refs/heads/main/working_configs.txt"
     path: ./providers/vlessforu.yaml
-    interval: 21600
+    interval: 3600
     health-check:
       enable: true
-      url: https://www.gstatic.com/generate_204
+      url: https://youtube.com
       interval: 300
 
   mos-eu:
     type: http
     url: "https://hub.mos.ru/zieng2/wl/raw/main/list_universal.txt"
     path: ./providers/mos-eu.yaml
-    interval: 21600
+    interval: 3600
     health-check:
       enable: true
-      url: https://www.gstatic.com/generate_204
+      url: https://youtube.com
       interval: 300
 
   mos-purple:
     type: http
     url: "https://hub.mos.ru/panosenk/sukasubs/-/raw/main/purple.txt"
     path: ./providers/mos-purple.yaml
-    interval: 21600
+    interval: 3600
     health-check:
       enable: true
-      url: https://www.gstatic.com/generate_204
+      url: https://youtube.com
       interval: 300
 
 proxy-groups:
@@ -71,7 +71,7 @@ proxy-groups:
     type: url-test
     use:
       - vlessforu
-    url: https://ifconfig.io/
+    url: https://youtube.com
     interval: 300
     tolerance: 150
 
@@ -79,7 +79,7 @@ proxy-groups:
     type: url-test
     use:
       - mos-eu
-    url: https://ifconfig.io/
+    url: https://youtube.com
     interval: 300
     tolerance: 150
     filter: "(?i)(Estonia|Finland|Lithuania|Latvia|Poland|Germany|Netherlands|Czechia|Sweden|Norway|Denmark)"
@@ -88,7 +88,7 @@ proxy-groups:
     type: url-test
     use:
       - mos-purple
-    url: https://ifconfig.io/
+    url: https://youtube.com
     interval: 300
     tolerance: 150
     filter: "(?i)(purple|💜)"
@@ -100,7 +100,7 @@ proxy-groups:
       - VPN-SUB-PURPLE
       - VPN-SUB-VLESS
       - VPN-SUB-EU
-    url: https://ifconfig.io/
+    url: https://youtube.com
     interval: 300
     tolerance: 150
 
