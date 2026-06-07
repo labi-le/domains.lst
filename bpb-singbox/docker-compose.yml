@@ -9,7 +9,7 @@ services:
       - sb-config:/etc/sing-box:rw
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
-      - SUB_URL=
+      - SUB_URL=https://p0pozgbxd4rkudvkx0ey6k2v2qqqntno.i-ae7.workers.dev/sub/normal/4AoAnS3kc%40qONw69?app=sing-box
     dns:
       - 8.8.8.8
     healthcheck:
