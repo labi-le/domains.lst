@@ -1,7 +1,7 @@
 mode: rule
 allow-lan: true
 bind-address: "*"
-log-level: info
+log-level: debug
 ipv6: false
 tproxy-port: 12342
 
@@ -9,6 +9,12 @@ iptables:
   inbound-interface: br-lan
 
 proxies:
+  - name: xray-bpb
+    type: socks5
+    server: 127.0.0.1
+    port: 10808
+    udp: true
+
   - name: VPN
     type: direct
     udp: true
@@ -30,6 +36,7 @@ dns:
   ipv6: false
   enhanced-mode: fake-ip
   fake-ip-range: 198.18.1.0/24
+  store-fake-ip: true
   fake-ip-filter-mode: rule
   fake-ip-filter:
     - DOMAIN-SUFFIX,lan,real-ip
@@ -41,35 +48,41 @@ dns:
     - 127.0.0.1:5453
 
 proxy-providers:
-  vlessforu:
+  goida:
     type: http
-    url: "https://raw.githubusercontent.com/bobrinaw/vlessforu/refs/heads/main/working_configs.txt"
-    path: ./providers/vlessforu.yaml
+    url: "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/25.txt"
+    path: ./providers/goida.yaml
     interval: 3600
-    health-check:
-      enable: true
-      url: "http://cp.cloudflare.com/generate_204"
-      interval: 60
 
-  mos-eu:
-    type: http
-    url: "https://hub.mos.ru/zieng2/wl/raw/main/list_universal.txt"
-    path: ./providers/mos-eu.yaml
-    interval: 3600
-    health-check:
-      enable: true
-      url: "http://cp.cloudflare.com/generate_204"
-      interval: 60
-
-  mos-purple:
-    type: http
-    url: "https://hub.mos.ru/panosenk/sukasubs/-/raw/main/purple.txt"
-    path: ./providers/mos-purple.yaml
-    interval: 3600
-    health-check:
-      enable: true
-      url: "http://cp.cloudflare.com/generate_204"
-      interval: 60
+  # vlessforu:
+  #   type: http
+  #   url: "https://raw.githubusercontent.com/bobrinaw/vlessforu/refs/heads/main/working_configs.txt"
+  #   path: ./providers/vlessforu.yaml
+  #   interval: 3600
+  #   health-check:
+  #     enable: true
+  #     url: "http://fast.com"
+  #     interval: 60
+  # 
+  # mos-eu:
+  #   type: http
+  #   url: "https://hub.mos.ru/zieng2/wl/raw/main/list_universal.txt"
+  #   path: ./providers/mos-eu.yaml
+  #   interval: 3600
+  #   health-check:
+  #     enable: true
+  #     url: "http://fast.com"
+  #     interval: 60
+  # 
+  # mos-purple:
+  #   type: http
+  #   url: "https://hub.mos.ru/panosenk/sukasubs/-/raw/main/purple.txt"
+  #   path: ./providers/mos-purple.yaml
+  #   interval: 3600
+  #   health-check:
+  #     enable: true
+  #     url: "http://fast.com"
+  #     interval: 60
 
 proxy-groups:
   - name: WARP
@@ -77,45 +90,56 @@ proxy-groups:
     proxies:
       - WARP-AWG1
       - WARP-AWG0
-    url: "http://cp.cloudflare.com/generate_204"
-    interval: 60
+    url: "http://fast.com"
+    interval: 900
     tolerance: 150
 
-  - name: VPN-SUB-VLESS
-    type: url-test
+  - name: VPN-SUB-GOIDA
+    type: fallback
     use:
-      - vlessforu
-    url: "http://cp.cloudflare.com/generate_204"
-    interval: 60
+      - goida
+    url: "http://fast.com"
+    interval: 900
     tolerance: 150
+    filter: "(?i)(🇩🇪|🇫🇷|🇫🇮|🇱🇻|🇳🇱|🇷🇴|🇮🇹)"
 
-  - name: VPN-SUB-EU
-    type: url-test
-    use:
-      - mos-eu
-    url: "http://cp.cloudflare.com/generate_204"
-    interval: 60
-    tolerance: 150
-    filter: "(?i)(Estonia|Finland|Lithuania|Latvia|Poland|Germany|Netherlands|Czechia|Sweden|Norway|Denmark)"
-
-  - name: VPN-SUB-PURPLE
-    type: url-test
-    use:
-      - mos-purple
-    url: "http://cp.cloudflare.com/generate_204"
-    interval: 60
-    tolerance: 150
-    filter: "(?i)(purple|💜)"
+  # - name: VPN-SUB-VLESS
+  #   type: url-test
+  #   use:
+  #     - vlessforu
+  #   url: "http://fast.com"
+  #   interval: 60
+  #   tolerance: 150
+  # 
+  # - name: VPN-SUB-EU
+  #   type: url-test
+  #   use:
+  #     - mos-eu
+  #   url: "http://fast.com"
+  #   interval: 60
+  #   tolerance: 150
+  #   filter: "(?i)(Estonia|Finland|Lithuania|Latvia|Poland|Germany|Netherlands|Czechia|Sweden|Norway|Denmark)"
+  # 
+  # - name: VPN-SUB-PURPLE
+  #   type: url-test
+  #   use:
+  #     - mos-purple
+  #   url: "http://fast.com"
+  #   interval: 60
+  #   tolerance: 150
+  #   filter: "(?i)(purple|💜)"
 
   - name: VPN-PREFERRED
     type: fallback
     proxies:
-      - VPN
-      - VPN-SUB-PURPLE
-      - VPN-SUB-VLESS
-      - VPN-SUB-EU
-    url: "http://cp.cloudflare.com/generate_204"
-    interval: 60
+      - xray-bpb
+      - VPN-SUB-GOIDA
+      # - VPN
+      # - VPN-SUB-PURPLE
+      # - VPN-SUB-VLESS
+      # - VPN-SUB-EU
+    url: "http://fast.com"
+    interval: 900
     tolerance: 150
 
 rule-providers:

@@ -1,0 +1,5 @@
+FROM alpine:latest
+RUN apk add --no-cache python3 wget curl
+COPY updater.sh /updater.sh
+RUN chmod +x /updater.sh
+CMD ["/bin/sh", "/updater.sh"]

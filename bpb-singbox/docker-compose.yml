@@ -1,0 +1,35 @@
+services:
+  bpb-updater:
+    build:
+      context: .
+      dockerfile: Dockerfile.updater
+    container_name: bpb-updater
+    restart: unless-stopped
+    volumes:
+      - sb-config:/etc/sing-box:rw
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - SUB_URL=
+    dns:
+      - 8.8.8.8
+    healthcheck:
+      test: ["CMD", "test", "-f", "/etc/sing-box/config.json"]
+      interval: 2s
+      retries: 15
+      start_period: 10s
+
+  bpb-singbox:
+    image: ghcr.io/sagernet/sing-box:latest
+    container_name: bpb-singbox
+    restart: unless-stopped
+    ports:
+      - "10808:10808"
+    volumes:
+      - sb-config:/etc/sing-box:ro
+    command: run -c /etc/sing-box/config.json
+    depends_on:
+      bpb-updater:
+        condition: service_healthy
+
+volumes:
+  sb-config:
