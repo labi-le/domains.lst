@@ -134,9 +134,9 @@ proxy-groups:
   - name: VPN-PREFERRED
     type: fallback
     proxies:
-      - VPN-SUB-GOIDA
       - VPN
       - VPN-SUB-PURPLE
+      - VPN-SUB-GOIDA
       - VPN-SUB-VLESS
       - VPN-SUB-EU
     url: "http://fast.com"
