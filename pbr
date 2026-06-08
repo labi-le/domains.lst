@@ -1,9 +1,12 @@
 #!/bin/sh /etc/rc.common
 
 START=99
+FAKEIP_SUBNET="198.18.1.0/24"
+TPROXY_NFT_FILE="/etc/nftables.d/99-tproxy.nft"
 
 start() {
   mkdir -p /tmp/mihomo/rules
+  _write_tproxy_rules
   _process_rule_set "vpn" \
     "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/geoblock.lst" \
     "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/google_ai.lst" \
@@ -23,6 +26,19 @@ start() {
   echo "Restarting mihomo..." >&2
   /etc/init.d/mihomo restart
   exit 0
+}
+
+_write_tproxy_rules() {
+  mkdir -p "$(dirname "$TPROXY_NFT_FILE")"
+  cat > "$TPROXY_NFT_FILE" <<EOF
+chain prerouting_tproxy {
+	type filter hook prerouting priority mangle; policy accept;
+
+	ip daddr $FAKEIP_SUBNET meta mark set 0x1
+	ip daddr $FAKEIP_SUBNET meta l4proto { tcp, udp } tproxy ip to :12342 accept
+}
+EOF
+  echo "Wrote $TPROXY_NFT_FILE for fake-IP subnet $FAKEIP_SUBNET" >&2
 }
 
 _process_rule_set() {

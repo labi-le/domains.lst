@@ -14,11 +14,11 @@
 2. Local `.lan` names and static dnsmasq rules are answered by `dnsmasq` itself.
 3. Generic upstream DNS is forwarded by `dnsmasq` to `mihomo` on `127.0.0.1:12344`.
 4. `mihomo` resolves upstream names through `stubby` on `127.0.0.1:5453`.
-5. For external domains in fake-IP flow, `mihomo` returns an address from `198.18.1.0/28`.
+5. For external domains in fake-IP flow, `mihomo` returns an address from `198.18.1.0/24`.
 
 ### Transparent Proxy
 
-1. Client connects to a fake-IP address from `198.18.1.0/28`.
+1. Client connects to a fake-IP address from `198.18.1.0/24`.
 2. `nftables` marks and TPROXY-redirects that traffic to `mihomo` on `:12342`.
 3. `mihomo` restores the original domain from its fake-IP mapping.
 4. `mihomo` applies routing rules and selects the outbound path.
@@ -76,7 +76,7 @@
 - `mihomo/config.yaml` contains the static `mihomo` configuration.
 - `mihomo/init.d` contains the procd init script for `mihomo`.
 - `mihomo/config` contains the UCI service configuration for `mihomo`.
-- `pbr` regenerates rule-provider files under `/tmp/mihomo/rules`, refreshes the WARP IP set, and restarts `mihomo`.
+- `pbr` regenerates rule-provider files under `/tmp/mihomo/rules`, rewrites `/etc/nftables.d/99-tproxy.nft` for the current fake-IP subnet, refreshes the WARP IP set, and restarts `mihomo`.
 - `REFERENCE_MAP.md` maps repository files to router paths and lists external sources.
 
 ## Operational Notes
