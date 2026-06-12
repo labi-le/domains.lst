@@ -42,45 +42,20 @@ dns:
     - 127.0.0.1:5453
 
 proxy-providers:
-  goida:
+  mifa:
     type: http
-    url: "https://raw.githubusercontent.com/AvenCores/goida-vpn-configs/refs/heads/main/githubmirror/25.txt"
-    path: ./providers/goida.yaml
+    url: "https://mifa.world/vless"
+    path: ./providers/mifa.yaml
     interval: 3600
+    filter: "(?i)(Finland|Estonia|Lithuania|Sweden|Germany|Poland|Netherlands)"
+    exclude-filter: "(?i)(test|demo|expired|dead|trial)"
     health-check:
       enable: true
-      url: "http://fast.com"
-      interval: 300
-
-  vlessforu:
-    type: http
-    url: "https://raw.githubusercontent.com/bobrinaw/vlessforu/refs/heads/main/working_configs.txt"
-    path: ./providers/vlessforu.yaml
-    interval: 3600
-    health-check:
-      enable: true
-      url: "http://fast.com"
-      interval: 300
-
-  mos-eu:
-    type: http
-    url: "https://hub.mos.ru/zieng2/wl/raw/main/list_universal.txt"
-    path: ./providers/mos-eu.yaml
-    interval: 3600
-    health-check:
-      enable: true
-      url: "http://fast.com"
-      interval: 300
-
-  mos-purple:
-    type: http
-    url: "https://hub.mos.ru/panosenk/sukasubs/-/raw/main/purple.txt"
-    path: ./providers/mos-purple.yaml
-    interval: 3600
-    health-check:
-      enable: true
-      url: "http://fast.com"
-      interval: 300
+      url: "https://www.gstatic.com/generate_204"
+      interval: 90
+      timeout: 2000
+      lazy: false
+      expected-status: 204
 
 proxy-groups:
   - name: WARP
@@ -92,56 +67,32 @@ proxy-groups:
     interval: 900
     tolerance: 150
 
-  - name: VPN-SUB-GOIDA
-    type: fallback
+  - name: VPN-MIFA-AUTO
+    type: url-test
     use:
-      - goida
-    url: "http://fast.com"
-    interval: 300
-    tolerance: 150
-    filter: "(?i)(🇩🇪|🇫🇷|🇫🇮|🇱🇻|🇳🇱|🇷🇴|🇮🇹)"
-    empty-fallback: REJECT
-
-  - name: VPN-SUB-VLESS
-    type: fallback
-    use:
-      - vlessforu
-    url: "http://fast.com"
-    interval: 300
-    tolerance: 150
-    empty-fallback: REJECT
-
-  - name: VPN-SUB-EU
-    type: fallback
-    use:
-      - mos-eu
-    url: "http://fast.com"
-    interval: 300
-    tolerance: 150
-    filter: "(?i)(Estonia|Finland|Lithuania|Latvia|Poland|Germany|Netherlands|Czechia|Sweden|Norway|Denmark)"
-    empty-fallback: REJECT
-
-  - name: VPN-SUB-PURPLE
-    type: fallback
-    use:
-      - mos-purple
-    url: "http://fast.com"
-    interval: 300
-    tolerance: 150
-    filter: "(?i)(purple|💜)"
+      - mifa
+    url: "https://www.gstatic.com/generate_204"
+    interval: 90
+    timeout: 2000
+    tolerance: 30
+    lazy: false
+    expected-status: 204
+    max-failed-times: 1
+    filter: "(?i)(Finland|Estonia|Lithuania|Sweden|Germany|Poland|Netherlands)"
+    exclude-filter: "(?i)(test|demo|expired|dead|trial)"
     empty-fallback: REJECT
 
   - name: VPN-PREFERRED
     type: fallback
     proxies:
+      - VPN-MIFA-AUTO
       - VPN
-      - VPN-SUB-PURPLE
-      - VPN-SUB-GOIDA
-      - VPN-SUB-VLESS
-      - VPN-SUB-EU
-    url: "http://fast.com"
-    interval: 300
-    tolerance: 150
+    url: "https://www.gstatic.com/generate_204"
+    interval: 90
+    lazy: false
+    timeout: 2000
+    expected-status: 204
+    max-failed-times: 1
 
 rule-providers:
   vpn:
