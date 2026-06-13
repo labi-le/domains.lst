@@ -75,7 +75,7 @@ proxy-groups:
     url: "https://aistudio.google.com/"
     interval: 90
     timeout: 2000
-    tolerance: 30
+    tolerance: 300
     lazy: false
     expected-status: 302
     max-failed-times: 1
