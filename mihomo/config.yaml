@@ -51,11 +51,11 @@ proxy-providers:
     exclude-filter: "(?i)(test|demo|expired|dead|trial)"
     health-check:
       enable: true
-      url: "https://www.gstatic.com/generate_204"
+      url: "https://aistudio.google.com/"
       interval: 90
       timeout: 2000
       lazy: false
-      expected-status: 204
+      expected-status: 302
 
 proxy-groups:
   - name: WARP
@@ -63,20 +63,21 @@ proxy-groups:
     proxies:
       - WARP-AWG1
       - WARP-AWG0
-    url: "https://gstatic.com/generate_204"
+    url: "https://www.gstatic.com/generate_204"
     interval: 900
     tolerance: 150
+    expected-status: 204
 
   - name: VPN-MIFA-AUTO
     type: url-test
     use:
       - mifa
-    url: "https://www.gstatic.com/generate_204"
+    url: "https://aistudio.google.com/"
     interval: 90
     timeout: 2000
     tolerance: 30
     lazy: false
-    expected-status: 204
+    expected-status: 302
     max-failed-times: 1
     filter: "(?i)(Finland|Estonia|Lithuania|Sweden|Germany|Poland|Netherlands)"
     exclude-filter: "(?i)(test|demo|expired|dead|trial)"
@@ -87,11 +88,11 @@ proxy-groups:
     proxies:
       - VPN-MIFA-AUTO
       - VPN
-    url: "https://www.gstatic.com/generate_204"
-    interval: 90
+    url: "https://aistudio.google.com/"
+    interval: 0
     lazy: false
     timeout: 2000
-    expected-status: 204
+    expected-status: 302
     max-failed-times: 1
 
 rule-providers:
