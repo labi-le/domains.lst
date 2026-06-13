@@ -47,8 +47,8 @@ proxy-providers:
     url: "https://mifa.world/vless"
     path: ./providers/mifa.yaml
     interval: 3600
-    filter: "(?i)(Finland|Estonia|Lithuania|Sweden|Germany|Poland|Netherlands)"
-    exclude-filter: "(?i)(test|demo|expired|dead|trial)"
+    filter: "(?i)(Finland|Estonia|Latvia|Lithuania|Sweden|Poland|Germany|Netherlands)"
+    exclude-filter: "(?i)(Russia|test|demo|expired|dead|trial)"
     health-check:
       enable: true
       url: "https://aistudio.google.com/"
@@ -79,8 +79,8 @@ proxy-groups:
     lazy: false
     expected-status: 302
     max-failed-times: 1
-    filter: "(?i)(Finland|Estonia|Lithuania|Sweden|Germany|Poland|Netherlands)"
-    exclude-filter: "(?i)(test|demo|expired|dead|trial)"
+    filter: "(?i)(Finland|Estonia|Latvia|Lithuania|Sweden|Poland|Germany|Netherlands)"
+    exclude-filter: "(?i)(Russia|test|demo|expired|dead|trial)"
     empty-fallback: REJECT
 
   - name: VPN-PREFERRED
