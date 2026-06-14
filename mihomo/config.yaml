@@ -44,11 +44,9 @@ dns:
 proxy-providers:
   mifa:
     type: http
-    url: "https://mifa.world/vless"
+    url: "http://192.168.1.2:7008?subscription_url=https://mifa.world/vless&countries=FI,EE,LV,LT,SE,PL,DE,NL"
     path: ./providers/mifa.yaml
     interval: 3600
-    filter: "(?i)(Finland|Estonia|Latvia|Lithuania|Sweden|Poland|Germany|Netherlands)"
-    exclude-filter: "(?i)(Russia|test|demo|expired|dead|trial)"
     health-check:
       enable: true
       url: "https://aistudio.google.com/"
@@ -87,7 +85,7 @@ proxy-groups:
     type: fallback
     proxies:
       - VPN-MIFA-AUTO
-      - VPN
+#      - VPN
     url: "https://aistudio.google.com/"
     interval: 0
     lazy: false
