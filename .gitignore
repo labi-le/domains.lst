@@ -1,0 +1,37 @@
+# Binaries
+sub-preprocessor
+sub-preprocessor-release*
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# GoReleaser
+dist/
+
+# Test output and profiles
+*.test
+*.out
+*.prof
+mem.prof
+cpu.prof
+coverage.txt
+coverage.html
+
+# Nix
+result
+result-*
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+benchmarks

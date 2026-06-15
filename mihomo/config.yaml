@@ -49,7 +49,6 @@ proxy-providers:
     interval: 3600
     health-check:
       enable: true
-#      url: "https://aistudio.google.com/"
       url: "https://gstatic.com/generate_204"
       interval: 90
       timeout: 2000
