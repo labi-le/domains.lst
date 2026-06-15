@@ -44,16 +44,17 @@ dns:
 proxy-providers:
   mifa:
     type: http
-    url: "http://192.168.1.2:7008?subscription_url=https://mifa.world/vless&countries=FI,EE,LV,LT,SE,PL,DE,NL"
+    url: "http://192.168.1.2:7008?subscription_url=https://mifa.world/vless&countries=FI,EE,LV,LT,SE,PL,DE,NL,GB,US"
     path: ./providers/mifa.yaml
     interval: 3600
     health-check:
       enable: true
-      url: "https://aistudio.google.com/"
+#      url: "https://aistudio.google.com/"
+      url: "https://gstatic.com/generate_204"
       interval: 90
       timeout: 2000
       lazy: false
-      expected-status: 302
+      expected-status: 204
 
 proxy-groups:
   - name: WARP
