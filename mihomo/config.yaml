@@ -44,7 +44,7 @@ dns:
 proxy-providers:
   mifa:
     type: http
-    url: "http://192.168.1.2:7008?subscription_url=https://mifa.world/vless&countries=FI,EE,LV,LT,SE,PL,DE,NL,GB,US"
+    url: "http://192.168.1.2:7008/?subscription_url=https://mifa.world/vless&countries=AD,AL,AT,BA,BE,BG,CH,CY,CZ,DE,DK,EE,ES,FI,FO,FR,GB,GI,GL,GR,HR,HU,IE,IS,IT,LI,LT,LU,LV,MC,ME,MK,MT,NL,NO,PL,PT,RO,SE,SI,SK,SM,VA,US"
     path: ./providers/mifa.yaml
     interval: 3600
     health-check:
