@@ -55,6 +55,19 @@ proxy-providers:
       lazy: false
       expected-status: 204
 
+  aetris:
+    type: http
+    url: "http://192.168.1.2:7008/?subscription_url=https://raw.githubusercontent.com/flaafix/AetrisVPN-black-list/refs/heads/main/configs.txt&exclude_groups=geo_blocked"
+    path: ./providers/aetris.yaml
+    interval: 3600
+    health-check:
+      enable: true
+      url: "https://gstatic.com/generate_204"
+      interval: 90
+      timeout: 2000
+      lazy: false
+      expected-status: 204
+
 proxy-groups:
   - name: WARP
     type: fallback
@@ -70,27 +83,38 @@ proxy-groups:
     type: url-test
     use:
       - mifa
-    url: "https://aistudio.google.com/"
+    url: "https://gstatic.com/generate_204"
     interval: 90
     timeout: 2000
     tolerance: 300
     lazy: false
-    expected-status: 302
+    expected-status: 204
     max-failed-times: 1
-    filter: "(?i)(Finland|Estonia|Latvia|Lithuania|Sweden|Poland|Germany|Netherlands)"
-    exclude-filter: "(?i)(Russia|test|demo|expired|dead|trial)"
     empty-fallback: REJECT
 
   - name: VPN-PREFERRED
     type: fallback
     proxies:
       - VPN-MIFA-AUTO
+      - VPN-AETRIS-AUTO
 #      - VPN
-    url: "https://aistudio.google.com/"
+    url: "https://gstatic.com/generate_204"
     interval: 0
     lazy: false
     timeout: 2000
-    expected-status: 302
+    expected-status: 204
+    max-failed-times: 1
+
+  - name: VPN-AETRIS-AUTO
+    type: url-test
+    use:
+      - aetris
+    url: "https://gstatic.com/generate_204"
+    interval: 90
+    timeout: 2000
+    tolerance: 300
+    lazy: false
+    expected-status: 204
     max-failed-times: 1
 
 rule-providers:
