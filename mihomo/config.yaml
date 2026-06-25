@@ -68,6 +68,19 @@ proxy-providers:
       lazy: false
       expected-status: 204
 
+  purple:
+    type: http
+    url: "https://raw.githubusercontent.com/Animeblin1/sukasubs/refs/heads/main/purple.txt"
+    path: ./providers/purple.yaml
+    interval: 3600
+    health-check:
+      enable: true
+      url: "https://gstatic.com/generate_204"
+      interval: 90
+      timeout: 2000
+      lazy: false
+      expected-status: 204
+
 proxy-groups:
   - name: WARP
     type: fallback
@@ -95,9 +108,10 @@ proxy-groups:
   - name: VPN-PREFERRED
     type: fallback
     proxies:
-      - VPN-MIFA-AUTO
+      - VPN-PURPLE-AUTO
       - VPN-AETRIS-AUTO
-#      - VPN
+      - VPN-MIFA-AUTO
+      - VPN
     url: "https://gstatic.com/generate_204"
     interval: 0
     lazy: false
@@ -109,6 +123,18 @@ proxy-groups:
     type: url-test
     use:
       - aetris
+    url: "https://gstatic.com/generate_204"
+    interval: 90
+    timeout: 2000
+    tolerance: 300
+    lazy: false
+    expected-status: 204
+    max-failed-times: 1
+
+  - name: VPN-PURPLE-AUTO
+    type: url-test
+    use:
+      - purple
     url: "https://gstatic.com/generate_204"
     interval: 90
     timeout: 2000
