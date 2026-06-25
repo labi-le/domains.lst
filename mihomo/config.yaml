@@ -108,9 +108,9 @@ proxy-groups:
   - name: VPN-PREFERRED
     type: fallback
     proxies:
-      - VPN-PURPLE-AUTO
       - VPN-AETRIS-AUTO
       - VPN-MIFA-AUTO
+      - VPN-PURPLE-AUTO
       - VPN
     url: "https://gstatic.com/generate_204"
     interval: 0
