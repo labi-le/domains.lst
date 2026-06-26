@@ -50,7 +50,7 @@ proxy-providers:
     health-check:
       enable: true
       url: "https://gstatic.com/generate_204"
-      interval: 90
+      interval: 120
       timeout: 2000
       lazy: false
       expected-status: 204
@@ -63,7 +63,7 @@ proxy-providers:
     health-check:
       enable: true
       url: "https://gstatic.com/generate_204"
-      interval: 90
+      interval: 120
       timeout: 2000
       lazy: false
       expected-status: 204
@@ -76,7 +76,7 @@ proxy-providers:
     health-check:
       enable: true
       url: "https://gstatic.com/generate_204"
-      interval: 90
+      interval: 120
       timeout: 2000
       lazy: false
       expected-status: 204
@@ -92,54 +92,29 @@ proxy-groups:
     tolerance: 150
     expected-status: 204
 
-  - name: VPN-MIFA-AUTO
+  - name: VPN-ALL-AUTO
     type: url-test
     use:
+      - aetris
       - mifa
+      - purple
     url: "https://gstatic.com/generate_204"
-    interval: 90
+    interval: 120
     timeout: 2000
-    tolerance: 300
+    tolerance: 150
     lazy: false
     expected-status: 204
     max-failed-times: 1
-    empty-fallback: REJECT
 
   - name: VPN-PREFERRED
     type: fallback
     proxies:
-      - VPN-AETRIS-AUTO
-      - VPN-MIFA-AUTO
-      - VPN-PURPLE-AUTO
+      - VPN-ALL-AUTO
       - VPN
     url: "https://gstatic.com/generate_204"
-    interval: 0
+    interval: 120
     lazy: false
     timeout: 2000
-    expected-status: 204
-    max-failed-times: 1
-
-  - name: VPN-AETRIS-AUTO
-    type: url-test
-    use:
-      - aetris
-    url: "https://gstatic.com/generate_204"
-    interval: 90
-    timeout: 2000
-    tolerance: 300
-    lazy: false
-    expected-status: 204
-    max-failed-times: 1
-
-  - name: VPN-PURPLE-AUTO
-    type: url-test
-    use:
-      - purple
-    url: "https://gstatic.com/generate_204"
-    interval: 90
-    timeout: 2000
-    tolerance: 300
-    lazy: false
     expected-status: 204
     max-failed-times: 1
 

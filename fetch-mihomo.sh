@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-ARCH="linux-arm64" # arm64 = aarch64 (ARMv8, cortex-a53)
+ARCH="${MIHOMO_ARCH:-${ARCH:-linux-arm64}}" # arm64 = aarch64 (ARMv8, cortex-a53)
 REPO="MetaCubeX/mihomo"
 TMPDIR="${TMPDIR:-/tmp}"
 UPX_PROVIDER="${UPX_PROVIDER:-nix run nixpkgs#upx --}" # empty = skip UPX

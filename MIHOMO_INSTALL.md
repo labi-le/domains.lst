@@ -91,6 +91,54 @@ Validate the active config against the tmpfs runtime directory:
 ssh router '/usr/bin/mihomo -t -d /tmp/mihomo -f /etc/mihomo/config.yaml'
 ```
 
+## Local Dev Shell
+
+Use the repository `shell.nix` before copying config changes to the router:
+
+```sh
+nix-shell
+```
+
+Useful commands inside the shell:
+
+```sh
+mihomo-yaml-check
+mihomo-validate
+mihomo-deploy-config
+mihomo-fetch-router
+```
+
+Equivalent explicit commands:
+
+```sh
+yq '.' mihomo/config.yaml >/dev/null
+mihomo -t -d /tmp/mihomo -f mihomo/config.yaml
+scp mihomo/config.yaml router:/etc/mihomo/config.yaml
+```
+
+`mihomo-deploy-config` runs the local YAML parse and `mihomo -t` checks first, then copies `mihomo/config.yaml` to `router:/etc/mihomo/config.yaml`.
+
+To fetch the latest router `mihomo` binary for ARM64 and compress it with UPX:
+
+```sh
+mihomo-fetch-router
+```
+
+The helper defaults to `linux-arm64` and prints the compressed binary path. Override the architecture or temporary output directory when needed:
+
+```sh
+mihomo-fetch-router linux-arm64 /tmp
+MIHOMO_ROUTER_ARCH=linux-arm64 mihomo-fetch-router
+```
+
+Copy the resulting binary to the router:
+
+```sh
+bin="$(mihomo-fetch-router)"
+scp "$bin" router:/tmp/mihomo.bin
+ssh router 'cp /tmp/mihomo.bin /usr/bin/mihomo && chmod 755 /usr/bin/mihomo'
+```
+
 ## Start Services
 
 ```sh
@@ -125,7 +173,8 @@ ssh router 'logread | grep mihomo | grep -E "RuleSet\(vpn\)|RuleSet\(warp\)|usin
 Expected current routing behavior:
 
 - `vpn` domains -> `VPN-PREFERRED`
-- `VPN-PREFERRED` -> `VPN-SUB-EU` primary -> `VPN` (`awg2`) fallback
+- `VPN-PREFERRED` -> `VPN-ALL-AUTO` primary -> `VPN` (`awg2`) fallback
+- `VPN-ALL-AUTO` selects across `aetris`, `mifa`, and `purple`
 - `warp` domains -> `WARP` (`awg1` fallback to `awg0`)
 
 ## References
