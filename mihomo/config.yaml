@@ -109,6 +109,7 @@ proxy-groups:
   - name: VPN-PREFERRED
     type: fallback
     proxies:
+      - REJECT
       - VPN-ALL-AUTO
       - VPN
     url: "https://gstatic.com/generate_204"
