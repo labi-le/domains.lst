@@ -1,0 +1,28 @@
+services:
+  updater:
+    build: .
+    restart: unless-stopped
+    environment:
+      MIHOMO_BIN: /usr/local/bin/mihomo
+      SOURCES_FILE: /config/sources.txt
+      OUTPUT_FILE: /data/stable.txt
+      INTERVAL_SEC: ${INTERVAL_SEC:-1800}
+    volumes:
+      - ./filter-subs.sh:/app/filter-subs.sh:ro
+      - ./subs/sources.txt:/config/sources.txt:ro
+      - subs-data:/data
+
+  web:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "7009:80"
+    volumes:
+      - subs-data:/usr/share/nginx/html:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/stable.txt"]
+      interval: 60s
+      timeout: 5s
+
+volumes:
+  subs-data:
