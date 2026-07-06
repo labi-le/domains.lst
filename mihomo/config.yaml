@@ -42,10 +42,10 @@ dns:
     - 127.0.0.1:5453
 
 proxy-providers:
-  # Pre-filtered raw URI list served by the local subs-updater compose stack (docker-compose.yml)
+  # Pre-filtered raw URI list served by sub-preprocessor (https://github.com/labi-le/sub-preprocessor)
   stable:
     type: http
-    url: "http://192.168.1.2:7009/stable.txt"
+    url: "http://192.168.1.2:7008/stable.txt"
     path: ./providers/stable.yaml
     interval: 3600
     health-check:
