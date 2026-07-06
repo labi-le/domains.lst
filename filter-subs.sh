@@ -164,21 +164,20 @@ EOF
 docker run --rm -d --name "$CONTAINER" --network host \
   -v "$WORKDIR:/root/.config/mihomo" "$MIHOMO_IMAGE" >/dev/null
 
-ready=0
+# the REST API starts serving before providers register, so poll the provider itself
+loaded=0
 for _ in $(seq 1 30); do
-  if curl -fsS --max-time 2 "$API/version" >/dev/null 2>&1; then
-    ready=1
+  if loaded="$(curl -fsS --max-time 2 "$API/providers/proxies/merged" 2>/dev/null | jq '.proxies | length' 2>/dev/null)" \
+    && [ -n "$loaded" ] && [ "$loaded" -gt 0 ]; then
     break
   fi
+  loaded=0
   sleep 1
 done
-if [ "$ready" != "1" ]; then
+if [ "$loaded" -eq 0 ]; then
   docker logs "$CONTAINER" >&2 || true
-  die "mihomo API not ready on $CONTROLLER"
+  die "provider not ready on $CONTROLLER (0 proxies loaded)"
 fi
-
-loaded="$(curl -fsS "$API/providers/proxies/merged" | jq '.proxies | length')"
-[ "$loaded" -gt 0 ] || die "provider loaded 0 proxies (parse failure?)"
 echo "mihomo loaded $loaded nodes; testing: $ROUNDS rounds x ${TIMEOUT_MS}ms timeout" >&2
 
 # --- delay rounds ------------------------------------------------------------
