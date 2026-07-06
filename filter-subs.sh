@@ -7,7 +7,11 @@
 # survivors to subs/stable.txt sorted by mean delay.
 #
 # Tunables (env): ROUNDS TIMEOUT_MS MAX_FAIL MAX_AVG_MS ROUND_PAUSE TEST_URL
-#                 CONTROLLER MIHOMO_IMAGE SOURCES_FILE OUTPUT_FILE DRY_RUN
+#                 CONTROLLER MIHOMO_IMAGE MIHOMO_BIN SOURCES_FILE OUTPUT_FILE
+#                 DRY_RUN
+#
+# MIHOMO_BIN set   -> run the test instance as a local background process
+# MIHOMO_BIN unset -> run it as a disposable docker container (default)
 set -euo pipefail
 
 ROUNDS="${ROUNDS:-5}"
@@ -18,6 +22,7 @@ ROUND_PAUSE="${ROUND_PAUSE:-3}"
 TEST_URL="${TEST_URL:-https://www.gstatic.com/generate_204}"
 CONTROLLER="${CONTROLLER:-127.0.0.1:19090}"
 MIHOMO_IMAGE="${MIHOMO_IMAGE:-metacubex/mihomo:latest}"
+MIHOMO_BIN="${MIHOMO_BIN:-}"
 SOURCES_FILE="${SOURCES_FILE:-subs/sources.txt}"
 OUTPUT_FILE="${OUTPUT_FILE:-subs/stable.txt}"
 DRY_RUN="${DRY_RUN:-0}"
@@ -25,12 +30,18 @@ DRY_RUN="${DRY_RUN:-0}"
 API="http://$CONTROLLER"
 CONTAINER="mihomo-subtest-$$"
 WORKDIR="$(mktemp -d)"
+MIHOMO_PID=""
 
 die() { echo "error: $*" >&2; exit 1; }
 warn() { echo "warn: $*" >&2; }
 
 cleanup() {
-  docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+  if [ -n "$MIHOMO_PID" ]; then
+    kill "$MIHOMO_PID" >/dev/null 2>&1 || true
+    wait "$MIHOMO_PID" 2>/dev/null || true
+  else
+    docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+  fi
   rm -rf "$WORKDIR"
 }
 trap cleanup EXIT
@@ -39,8 +50,12 @@ for dep in curl jq awk base64 grep; do
   command -v "$dep" >/dev/null 2>&1 || die "$dep not found, please install"
 done
 if [ "$DRY_RUN" != "1" ]; then
-  command -v docker >/dev/null 2>&1 || die "docker not found, please install"
-  docker info >/dev/null 2>&1 || die "docker daemon unavailable"
+  if [ -n "$MIHOMO_BIN" ]; then
+    [ -x "$MIHOMO_BIN" ] || die "MIHOMO_BIN is not executable: $MIHOMO_BIN"
+  else
+    command -v docker >/dev/null 2>&1 || die "docker not found, please install"
+    docker info >/dev/null 2>&1 || die "docker daemon unavailable"
+  fi
 fi
 [ -f "$SOURCES_FILE" ] || die "sources file not found: $SOURCES_FILE"
 
@@ -161,8 +176,13 @@ rules:
   - MATCH,DIRECT
 EOF
 
-docker run --rm -d --name "$CONTAINER" --network host \
-  -v "$WORKDIR:/root/.config/mihomo" "$MIHOMO_IMAGE" >/dev/null
+if [ -n "$MIHOMO_BIN" ]; then
+  "$MIHOMO_BIN" -d "$WORKDIR" > "$WORKDIR/mihomo.log" 2>&1 &
+  MIHOMO_PID=$!
+else
+  docker run --rm -d --name "$CONTAINER" --network host \
+    -v "$WORKDIR:/root/.config/mihomo" "$MIHOMO_IMAGE" >/dev/null
+fi
 
 # the REST API starts serving before providers register, so poll the provider itself
 loaded=0
@@ -175,7 +195,11 @@ for _ in $(seq 1 30); do
   sleep 1
 done
 if [ "$loaded" -eq 0 ]; then
-  docker logs "$CONTAINER" >&2 || true
+  if [ -n "$MIHOMO_PID" ]; then
+    cat "$WORKDIR/mihomo.log" >&2 || true
+  else
+    docker logs "$CONTAINER" >&2 || true
+  fi
   die "provider not ready on $CONTROLLER (0 proxies loaded)"
 fi
 echo "mihomo loaded $loaded nodes; testing: $ROUNDS rounds x ${TIMEOUT_MS}ms timeout" >&2
@@ -238,6 +262,10 @@ awk -F'\t' -v survf="$SURVIVORS" '
   END { for (i = 1; i <= cnt; i++) if (order[i] in link) print link[order[i]] }
 ' "$SURVIVORS" "$INDEX" > "$WORKDIR/stable.txt"
 
+# cp+mv within the output dir: WORKDIR may be on another filesystem, where a
+# direct mv degrades to copy+unlink and readers could see a truncated file
 mkdir -p "$(dirname "$OUTPUT_FILE")"
-mv "$WORKDIR/stable.txt" "$OUTPUT_FILE"
+OUT_TMP="$(dirname "$OUTPUT_FILE")/.stable.txt.tmp"
+cp "$WORKDIR/stable.txt" "$OUT_TMP"
+mv "$OUT_TMP" "$OUTPUT_FILE"
 echo "wrote $surv_count/$node_count nodes to $OUTPUT_FILE" >&2
