@@ -47,15 +47,10 @@ pkgs.mkShellNoCC {
       printf '%s\n' "$bin"
     }
 
-    mihomo-filter-subs() {
-      bash ./filter-subs.sh "$@"
-    }
-
     echo "mihomo dev shell"
     echo "  mihomo-yaml-check [config]"
     echo "  mihomo-validate [config] [home-dir]"
     echo "  mihomo-deploy-config [router:/etc/mihomo/config.yaml]"
     echo "  mihomo-fetch-router [linux-arm64] [tmpdir]"
-    echo "  mihomo-filter-subs   (env: ROUNDS MAX_FAIL MAX_AVG_MS ... see filter-subs.sh)"
   '';
 }
