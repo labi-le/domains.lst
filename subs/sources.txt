@@ -2,8 +2,7 @@
 # name: [a-z0-9-]+, becomes the node label prefix in subs/stable.txt
 mifa https://mifa.world/vless
 aetris https://raw.githubusercontent.com/flaafix/AetrisVPN-black-list/refs/heads/main/configs.txt
-# purple removed 2026-07-06: github repo Animeblin1/sukasubs is gone (404)
-# purple https://raw.githubusercontent.com/Animeblin1/sukasubs/refs/heads/main/purple.txt
+purple https://hub.mos.ru/panosenk/sukasubs/-/raw/main/purple.txt
 mehrtat https://raw.githubusercontent.com/mehrtat/vless-collector/main/vless.txt
 mhditaheri https://raw.githubusercontent.com/MhdiTaheri/V2rayCollector/main/sub/vless
 iboxz https://raw.githubusercontent.com/iboxz/free-v2ray-collector/main/main/vless
