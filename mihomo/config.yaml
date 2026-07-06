@@ -42,10 +42,10 @@ dns:
     - 127.0.0.1:5453
 
 proxy-providers:
-  # Pre-filtered by filter-subs.sh (sources: subs/sources.txt, output: subs/stable.txt)
+  # Pre-filtered raw URI list served by the local subs-updater compose stack (docker-compose.yml)
   stable:
     type: http
-    url: "http://192.168.1.2:7008/?subscription_url=https://raw.githubusercontent.com/labi-le/domains.lst/main/subs/stable.txt&exclude_groups=geo_blocked"
+    url: "http://192.168.1.2:7009/stable.txt"
     path: ./providers/stable.yaml
     interval: 3600
     health-check:
