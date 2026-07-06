@@ -42,36 +42,11 @@ dns:
     - 127.0.0.1:5453
 
 proxy-providers:
-  mifa:
+  # Pre-filtered by filter-subs.sh (sources: subs/sources.txt, output: subs/stable.txt)
+  stable:
     type: http
-    url: "http://192.168.1.2:7008/?subscription_url=https://mifa.world/vless&exclude_groups=geo_blocked"
-    path: ./providers/mifa.yaml
-    interval: 3600
-    health-check:
-      enable: true
-      url: "https://gstatic.com/generate_204"
-      interval: 120
-      timeout: 2000
-      lazy: false
-      expected-status: 204
-
-  aetris:
-    type: http
-    url: "http://192.168.1.2:7008/?subscription_url=https://raw.githubusercontent.com/flaafix/AetrisVPN-black-list/refs/heads/main/configs.txt&exclude_groups=geo_blocked"
-    path: ./providers/aetris.yaml
-    interval: 3600
-    health-check:
-      enable: true
-      url: "https://gstatic.com/generate_204"
-      interval: 120
-      timeout: 2000
-      lazy: false
-      expected-status: 204
-
-  purple:
-    type: http
-    url: "http://192.168.1.2:7008/?subscription_url=https://raw.githubusercontent.com/Animeblin1/sukasubs/refs/heads/main/purple.txt&exclude_groups=geo_blocked"
-    path: ./providers/purple.yaml
+    url: "http://192.168.1.2:7008/?subscription_url=https://raw.githubusercontent.com/labi-le/domains.lst/main/subs/stable.txt&exclude_groups=geo_blocked"
+    path: ./providers/stable.yaml
     interval: 3600
     health-check:
       enable: true
@@ -95,9 +70,7 @@ proxy-groups:
   - name: VPN-ALL-AUTO
     type: url-test
     use:
-      - aetris
-      - mifa
-      - purple
+      - stable
     url: "https://gstatic.com/generate_204"
     interval: 120
     timeout: 2000
