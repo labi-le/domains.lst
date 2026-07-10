@@ -67,7 +67,8 @@ nix-shell --run 'mihomo-fetch-router linux-arm64 /tmp'
 - `RULE-SET,vpn` routes to `VPN-PREFERRED`.
 - `VPN-PREFERRED` first uses `VPN-ALL-AUTO`, then falls back to `VPN` on `awg2`.
 - `VPN-ALL-AUTO` is a `url-test` group over providers `aetris`, `mifa`, and `purple`.
-- `RULE-SET,warp` routes to `WARP`, which falls back from `WARP-AWG1` to `WARP-AWG0`.
+- `RULE-SET,warp` routes to `WARP`, which falls back from `WARP-AWG0` (`awg0`) to `WARP-AWG1` (`awg1`). `awg0` is primary because Cloudflare WARP (`awg1`) cannot reach Telegram web/API frontends.
+- Telegram web domains are pinned in mihomo `hosts` to `149.154.167.99`; this bypasses fake-IP and reaches `awg0` through the `warp_domains` set. Other Telegram domains stay on the `RULE-SET,warp` path.
 - `MATCH,DIRECT` remains the final rule.
 
 ## Verification Expectations

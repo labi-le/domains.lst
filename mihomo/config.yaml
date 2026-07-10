@@ -24,6 +24,14 @@ proxies:
     udp: true
     interface-name: awg0
 
+hosts:
+  "t.me": "149.154.167.99"
+  "telegram.org": "149.154.167.99"
+  "www.telegram.org": "149.154.167.99"
+  "web.telegram.org": "149.154.167.99"
+  "desktop.telegram.org": "149.154.167.99"
+  "telesco.pe": "149.154.167.99"
+
 dns:
   enable: true
   listen: 0.0.0.0:12344
@@ -60,8 +68,8 @@ proxy-groups:
   - name: WARP
     type: fallback
     proxies:
-      - WARP-AWG1
       - WARP-AWG0
+      - WARP-AWG1
     url: "https://www.gstatic.com/generate_204"
     interval: 900
     tolerance: 150

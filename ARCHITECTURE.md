@@ -45,8 +45,16 @@
 
 - `RULE-SET,warp` uses `WARP`.
 - `WARP` is a `fallback` group.
-- Primary path is `WARP-AWG1` bound to interface `awg1`.
-- If `WARP-AWG1` fails, fallback goes to `WARP-AWG0` bound to interface `awg0`.
+- Primary path is `WARP-AWG0` bound to interface `awg0`.
+- If `WARP-AWG0` fails, fallback goes to `WARP-AWG1` bound to interface `awg1`.
+- `awg0` is primary because Cloudflare WARP (`awg1`) has no working route to Telegram web/API frontends (`149.154.167.99`, `149.154.166.110`); `awg1` still passes the `gstatic` health check, so the fallback group never detected the Telegram-specific failure.
+
+### Telegram
+
+- Telegram web domains (`t.me`, `telegram.org`, `www.telegram.org`, `web.telegram.org`, `desktop.telegram.org`, `telesco.pe`) are pinned in mihomo `hosts` to `149.154.167.99`.
+- `hosts` is evaluated before fake-IP, so these domains return the real IP and bypass the fake-IP / proxy-group path entirely.
+- `149.154.167.99` is inside `149.154.160.0/20`, which is in the `warp_domains` nftables set, so client traffic is marked `0x3` and policy-routed via `table warp` to `awg0`. Direct access to Telegram from the WAN uplink is blocked, so this tunnel hop is mandatory.
+- Other Telegram domains (`api.telegram.org`, `core.telegram.org`, data centers) still use the fake-IP `RULE-SET,warp` path to `WARP` (`awg0`).
 
 ### Direct Path
 
