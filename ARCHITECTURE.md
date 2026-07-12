@@ -47,14 +47,12 @@
 - `WARP` is a `fallback` group.
 - Primary path is `WARP-AWG0` bound to interface `awg0`.
 - If `WARP-AWG0` fails, fallback goes to `WARP-AWG1` bound to interface `awg1`.
-- `awg0` is primary because Cloudflare WARP (`awg1`) has no working route to Telegram web/API frontends (`149.154.167.99`, `149.154.166.110`); `awg1` still passes the `gstatic` health check, so the fallback group never detected the Telegram-specific failure.
 
 ### Telegram
 
-- Telegram web domains (`t.me`, `telegram.org`, `www.telegram.org`, `web.telegram.org`, `desktop.telegram.org`, `telesco.pe`) are pinned in mihomo `hosts` to `149.154.167.99`.
-- `hosts` is evaluated before fake-IP, so these domains return the real IP and bypass the fake-IP / proxy-group path entirely.
-- `149.154.167.99` is inside `149.154.160.0/20`, which is in the `warp_domains` nftables set, so client traffic is marked `0x3` and policy-routed via `table warp` to `awg0`. Direct access to Telegram from the WAN uplink is blocked, so this tunnel hop is mandatory.
-- Other Telegram domains (`api.telegram.org`, `core.telegram.org`, data centers) still use the fake-IP `RULE-SET,warp` path to `WARP` (`awg0`).
+- Telegram is routed through Belarus (`awg0`). `pbr` puts it in the `warp` rule set: `Services/telegram.lst` feeds `warp.txt` (domains) and `Subnets/IPv4/telegram.lst` feeds the `warp_domains` IP set. So Telegram domains go fake-ip → `RULE-SET,warp` → `WARP` (primary `WARP-AWG0` = awg0), and native-app connections straight to DC IPs are marked `0x3` via `warp_domains` → `table warp` → awg0. It is not pinned in mihomo `hosts`.
+- Direct WAN to Telegram's DC ranges is blocked by the ISP (verified: router-originated direct connect to every range times out), so a tunnel is required. `awg0` (Belarus) reaches Telegram; `awg1` (Cloudflare WARP) does not (verified per-tunnel), so `WARP-AWG0` stays primary.
+- An on-router `tg-ws-proxy` (SOCKS5 `:17023`, MTProto↔WebSocket bridge, spatiumstas/tg-ws-proxy-go) also runs as an optional per-client path, but is not required now that Telegram routes via awg0.
 
 ### Direct Path
 

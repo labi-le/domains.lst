@@ -24,14 +24,6 @@ proxies:
     udp: true
     interface-name: awg0
 
-hosts:
-  "t.me": "149.154.167.99"
-  "telegram.org": "149.154.167.99"
-  "www.telegram.org": "149.154.167.99"
-  "web.telegram.org": "149.154.167.99"
-  "desktop.telegram.org": "149.154.167.99"
-  "telesco.pe": "149.154.167.99"
-
 dns:
   enable: true
   listen: 0.0.0.0:12344
