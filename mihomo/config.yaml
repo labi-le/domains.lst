@@ -50,9 +50,9 @@ proxy-providers:
     interval: 3600
     health-check:
       enable: true
-      url: "https://gstatic.com/generate_204"
-      interval: 120
-      timeout: 2000
+      url: "http://cp.cloudflare.com/generate_204"
+      interval: 60
+      timeout: 1000
       lazy: false
       expected-status: 204
 
@@ -62,7 +62,7 @@ proxy-groups:
     proxies:
       - WARP-AWG0
       - WARP-AWG1
-    url: "https://www.gstatic.com/generate_204"
+    url: "http://cp.cloudflare.com/generate_204"
     interval: 900
     tolerance: 150
     expected-status: 204
@@ -71,25 +71,24 @@ proxy-groups:
     type: url-test
     use:
       - stable
-    url: "https://gstatic.com/generate_204"
-    interval: 120
-    timeout: 2000
+    url: "https://platform.claude.com/"
+    interval: 60
+    timeout: 1000
     tolerance: 150
     lazy: false
-    expected-status: 204
+    expected-status: 200-399
     max-failed-times: 1
 
   - name: VPN-PREFERRED
     type: fallback
     proxies:
-      - REJECT
       - VPN-ALL-AUTO
       - VPN
-    url: "https://gstatic.com/generate_204"
-    interval: 120
+    url: "https://platform.claude.com/"
+    interval: 60
     lazy: false
-    timeout: 2000
-    expected-status: 204
+    timeout: 1000
+    expected-status: 200-399
     max-failed-times: 1
 
 rule-providers:
