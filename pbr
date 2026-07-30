@@ -56,7 +56,8 @@ _process_rule_set() {
     done
     downloaded="${downloaded}${data}\n"
   done
-  printf "%b" "$downloaded" | tr -d '\r' | awk 'NF>0 && !/^#/{print $1}' | sed 's#^\.##' | sort -u | awk 'NF>0 {print "DOMAIN-SUFFIX," $1}' > "$output"
+  printf "%b" "$downloaded" | tr -d '\r' | awk 'NF>0 && !/^#/{print $1}' | sed 's#^\.##' | sort -u | awk 'NF>0 {print "+." $1}' > "$output.tmp"
+  mv "$output.tmp" "$output"
   echo "Wrote $(wc -l < "$output") entries to $output" >&2
 }
 

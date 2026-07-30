@@ -95,13 +95,13 @@ rule-providers:
   vpn:
     type: file
     path: ./rules/vpn.txt
-    behavior: classical
+    behavior: domain
     format: text
 
   warp:
     type: file
     path: ./rules/warp.txt
-    behavior: classical
+    behavior: domain
     format: text
 
 rules:
