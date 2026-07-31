@@ -66,9 +66,12 @@ nix-shell --run 'mihomo-fetch-router linux-arm64 /tmp'
 
 - `RULE-SET,vpn` routes to `VPN-PREFERRED`.
 - `VPN-PREFERRED` first uses `VPN-ALL-AUTO`, then falls back to `VPN` on `awg2`.
-- `VPN-ALL-AUTO` is a `url-test` group over providers `aetris`, `mifa`, and `purple`.
+- `VPN-ALL-AUTO` is a `url-test` group over proxy-provider `stable`.
 - `RULE-SET,warp` routes to `WARP`, which falls back from `WARP-AWG0` (`awg0`) to `WARP-AWG1` (`awg1`).
-- Telegram is routed through Belarus (`awg0`): in the `warp` rule set (pbr `Services/telegram.lst` for domains, `Subnets/IPv4/telegram.lst` for the `warp_domains` IP set) → `RULE-SET,warp` → `WARP` (primary `WARP-AWG0`), with direct-to-DC-IP traffic marked `0x3` → `table warp` → awg0. Not pinned in `hosts`. Direct WAN to Telegram is ISP-blocked and `awg1` cannot reach Telegram, so `awg0` is primary/required. An optional on-router `tg-ws-proxy` (SOCKS5 `:17023`) also exists.
+- Telegram is pinned to Belarus (`awg0`) via a **single path inside mihomo, with no fallback**. `pbr` fetches `Services/telegram.lst` into `telegram.txt` instead of feeding it to the `warp` set (nothing subtracts Telegram entries from the other warp sources, so rule order is what protects the pin), and `Subnets/IPv4/telegram.lst` into `telegram_ip.txt`. Both route to the proxy `WARP-AWG0` directly, not to the `WARP` group: `RULE-SET,telegram,WARP-AWG0` and `RULE-SET,telegram_ip,WARP-AWG0,no-resolve`, which MUST stay ordered above the `warp` rules. Native-app connections to raw DC IPs reach mihomo because `pbr` TPROXYs the nft set `tproxy_ip4` (Telegram + Viber ranges) to `:12342`. The `telegram` rule-provider must also appear in `dns.fake-ip-filter` as `RULE-SET,telegram,fake-ip`, otherwise Telegram domains fall to `MATCH,real-ip` and resolve to Cloudflare IPs that are absent from `tproxy_ip4`, going straight to the ISP-blocked WAN.
+- Pinning is deliberate: `awg1` passes the `WARP` group's `cp.cloudflare.com` probe but cannot carry Telegram TCP, so a fallback there would convert a loud `awg0` failure into a silent hang. Telegram now fails explicitly if `awg0` is down, while the remaining `warp` domains keep the honest `awg0` → `awg1` fallback. Viber IPs stay on the group via `RULE-SET,warp_ip,WARP,no-resolve`.
+- The old split path is gone: firewall rule `mark_warp_domains` (mark `0x3`), ipset `warp_domains`, ip rule `fwmark 0x3 lookup warp`, `table warp` and hotplug `/etc/hotplug.d/iface/40-warp` were all removed. An optional on-router `tg-ws-proxy` (SOCKS5 `:17023`) still exists.
+- `awg0`'s peer is addressed as `192.168.1.2` directly (UCI `network.@amneziawg_awg0[0].endpoint_host`). Do not set it back to `labile.cc`: that name resolves to `192.168.1.2` via the dnsmasq override but to the router's own WAN IP publicly, so if the ifup-time resolver ever answers with the public record the tunnel points at the router itself and receives nothing. This setting lives only in router UCI and is not tracked in this repository, so nothing here enforces it.
 - `MATCH,DIRECT` remains the final rule.
 
 ## Verification Expectations
@@ -92,6 +95,30 @@ nix-instantiate --parse shell.nix
 ```
 
 If an LSP server is unavailable, explicitly report that limitation.
+
+## Commit Convention
+
+Hand-written commits in this repo are short, lowercase, imperative, with no trailing period
+(0 of 272 subjects end in one) and a median subject of ~16 characters:
+
+```
+fix fakeip algo
+increase tolerance
+route telegram via warp (awg0), drop hosts pin
+```
+
+- Keep the subject to one short line. Only 2 of 272 subjects exceed 72 characters.
+- A `scope:` prefix (`mihomo:`, `warp:`, `pbr:`) is rare — 5 of 272 — so use it only when the
+  change really is confined to one area. Never use Conventional Commits prefixes (`feat:`,
+  `chore:`).
+- A body is the exception, not the rule: 17 of 272 commits have one, and only 3 use `-` bullets.
+  Add one only when the diff cannot show *why*, and keep it to a few lines. Never restate the
+  diff or list touched files.
+- Ignore the `Update <file>` / `Create <file>` subjects when copying style: those are GitHub
+  web-editor defaults, not a convention.
+
+Code comments follow the same rule: explain a non-obvious constraint or consequence, never what
+the next line already says.
 
 ## Router Safety
 

@@ -31,7 +31,7 @@ Use this skill for these topics:
 
 - Speak in the user's language.
 - Link local files when mentioning them, for example `mihomo/config.yaml`.
-- Prefer concrete examples using this repo's groups: `VPN-ALL-AUTO`, `VPN-PREFERRED`, `WARP`, `aetris`, `mifa`, and `purple`.
+- Prefer concrete examples using this repo's groups (`VPN-ALL-AUTO`, `VPN-PREFERRED`, `WARP`), its `type: direct` proxies (`VPN` on `awg2`, `WARP-AWG0` on `awg0`, `WARP-AWG1` on `awg1`), and proxy-provider `stable`.
 - If documentation and observed config could be interpreted differently, say so and identify what would need runtime verification.
 
 ## Boundaries

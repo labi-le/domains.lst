@@ -18,7 +18,10 @@ Mutable runtime files:
 - `/tmp/mihomo/cache.db`
 - `/tmp/mihomo/rules/vpn.txt`
 - `/tmp/mihomo/rules/warp.txt`
-- `/tmp/mihomo/providers/mos-eu.yaml`
+- `/tmp/mihomo/rules/telegram.txt`
+- `/tmp/mihomo/rules/telegram_ip.txt`
+- `/tmp/mihomo/rules/warp_ip.txt`
+- `/tmp/mihomo/providers/stable.yaml`
 
 Do not use `/tmp/mihomo` as a temporary binary filename. It is the runtime directory.
 
@@ -38,10 +41,10 @@ Current router build pattern:
 
 - `mihomo-linux-arm64-v<version>.gz`
 
-Example using the currently deployed version:
+Example (substitute the current release; the router runs `mihomo -v` to report its own):
 
 ```sh
-VER="1.19.25"
+VER="1.19.27"
 curl -L -o "/tmp/mihomo-${VER}.gz" \
   "https://github.com/MetaCubeX/mihomo/releases/download/v${VER}/mihomo-linux-arm64-v${VER}.gz"
 
@@ -144,7 +147,13 @@ ssh router 'cp /tmp/mihomo.bin /usr/bin/mihomo && chmod 755 /usr/bin/mihomo'
 ```sh
 ssh router '/etc/init.d/mihomo enable && /etc/init.d/mihomo restart'
 ssh router '/etc/init.d/pbr enable && /etc/init.d/pbr start'
+ssh router 'fw4 reload'
 ```
+
+`pbr` rewrites `/etc/nftables.d/99-tproxy.nft` but does not reload `fw4`, so chain changes take
+effect only on the next `fw4 reload` or boot. Set *elements* are inlined into that file and are
+also applied live by `pbr`, so an existing install survives a reload untouched; a first install,
+or any edit to the rule text itself, needs the reload above.
 
 ## Verification
 
@@ -152,9 +161,12 @@ ssh router '/etc/init.d/pbr enable && /etc/init.d/pbr start'
 
 ```sh
 ssh router 'ss -ltnup 2>/dev/null | grep -E "12342|12344"'
-ssh router 'ls -lh /tmp/mihomo/cache.db /tmp/mihomo/rules/vpn.txt /tmp/mihomo/rules/warp.txt /tmp/mihomo/providers/mos-eu.yaml'
+ssh router 'ls -lh /tmp/mihomo/cache.db /tmp/mihomo/rules/*.txt /tmp/mihomo/providers/stable.yaml'
 ssh router 'dig +short chatgpt.com @127.0.0.1 -p 53'
 ssh router 'dig +short rutracker.org @127.0.0.1 -p 53'
+ssh router 'dig +short web.telegram.org @127.0.0.1 -p 53'
+ssh router 'nft list set inet fw4 tproxy_ip4'
+ssh router 'nft list chain inet fw4 prerouting_tproxy'
 ```
 
 ### LAN Client Checks
@@ -162,20 +174,29 @@ ssh router 'dig +short rutracker.org @127.0.0.1 -p 53'
 ```sh
 curl -vk https://chatgpt.com
 curl -vk https://rutracker.org
+curl -sS -o /dev/null -w '%{http_code}\n' https://web.telegram.org/
+curl -sS -k -o /dev/null -w '%{http_code}\n' https://149.154.167.99/
 ```
+
+`web.telegram.org` must resolve to a `198.18.1.x` fake IP, not a real `104.18.x` address: a real
+one means the `telegram` entry is missing from `dns.fake-ip-filter`. The raw DC IP exercises the
+`tproxy_ip4` -> `RULE-SET,telegram_ip` path that native Telegram apps use.
 
 ### Log Checks
 
 ```sh
-ssh router 'logread | grep mihomo | grep -E "RuleSet\(vpn\)|RuleSet\(warp\)|using VPN-PREFERRED|using WARP|using DIRECT"'
+ssh router 'logread | grep mihomo | grep -E "RuleSet\(vpn\)|RuleSet\(telegram\)|RuleSet\(telegram_ip\)|RuleSet\(warp\)|RuleSet\(warp_ip\)|using VPN-PREFERRED|using WARP-AWG0|using WARP\[|using DIRECT"'
 ```
 
 Expected current routing behavior:
 
 - `vpn` domains -> `VPN-PREFERRED`
 - `VPN-PREFERRED` -> `VPN-ALL-AUTO` primary -> `VPN` (`awg2`) fallback
-- `VPN-ALL-AUTO` selects across `aetris`, `mifa`, and `purple`
-- `warp` domains -> `WARP` (`awg1` fallback to `awg0`)
+- `VPN-ALL-AUTO` selects across proxy-provider `stable`
+- `warp` domains -> `WARP` (primary `WARP-AWG0`/`awg0`, fallback `WARP-AWG1`/`awg1`)
+- Telegram domains -> `WARP-AWG0` directly (pinned to `awg0`, no fallback)
+- Telegram raw DC IPs -> TPROXY via nft set `tproxy_ip4` -> `RULE-SET,telegram_ip,WARP-AWG0,no-resolve`
+- Viber IPs -> TPROXY via `tproxy_ip4` -> `RULE-SET,warp_ip,WARP,no-resolve`
 
 ## References
 

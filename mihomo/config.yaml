@@ -36,6 +36,7 @@ dns:
     - DOMAIN-SUFFIX,lan,real-ip
     - DOMAIN-SUFFIX,local,real-ip
     - RULE-SET,vpn,fake-ip
+    - RULE-SET,telegram,fake-ip
     - RULE-SET,warp,fake-ip
     - MATCH,real-ip
   nameserver:
@@ -104,7 +105,28 @@ rule-providers:
     behavior: domain
     format: text
 
+  warp_ip:
+    type: file
+    path: ./rules/warp_ip.txt
+    behavior: ipcidr
+    format: text
+
+  telegram:
+    type: file
+    path: ./rules/telegram.txt
+    behavior: domain
+    format: text
+
+  telegram_ip:
+    type: file
+    path: ./rules/telegram_ip.txt
+    behavior: ipcidr
+    format: text
+
 rules:
   - RULE-SET,vpn,VPN-PREFERRED
+  - RULE-SET,telegram,WARP-AWG0
+  - RULE-SET,telegram_ip,WARP-AWG0,no-resolve
   - RULE-SET,warp,WARP
+  - RULE-SET,warp_ip,WARP,no-resolve
   - MATCH,DIRECT

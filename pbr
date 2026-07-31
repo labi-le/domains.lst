@@ -3,42 +3,101 @@
 START=99
 FAKEIP_SUBNET="198.18.1.0/24"
 TPROXY_NFT_FILE="/etc/nftables.d/99-tproxy.nft"
+TPROXY_IP_SET="tproxy_ip4"
+TELEGRAM_IP_FILE="/tmp/mihomo/rules/telegram_ip.txt"
+WARP_IP_FILE="/tmp/mihomo/rules/warp_ip.txt"
 
 start() {
   mkdir -p /tmp/mihomo/rules
-  _write_tproxy_rules
+  # mihomo tolerates a missing rule file, but that provider then matches nothing and silently
+  # sends its traffic to MATCH,DIRECT.
+  touch /tmp/mihomo/rules/vpn.txt /tmp/mihomo/rules/warp.txt /tmp/mihomo/rules/telegram.txt \
+    "$TELEGRAM_IP_FILE" "$WARP_IP_FILE"
   _process_rule_set "vpn" \
     "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/geoblock.lst" \
     "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/google_ai.lst" \
     "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set.txt"
+  _process_rule_set "telegram" \
+    "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/telegram.lst"
   _process_rule_set "warp" \
     "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/block.lst" \
     "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/porn.lst" \
     "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/anime.lst" \
     "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/news.lst" \
     "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/twitter.lst" \
-    "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/telegram.lst" \
     "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/meta.lst" \
     "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set_cis.txt"
-  nft flush set inet fw4 warp_domains 2> /dev/null || true
-  _process_ip_set "warp_domains" "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Subnets/IPv4/telegram.lst"
-  _process_ip_set "warp_domains" "https://raw.githubusercontent.com/routir/unblock/refs/heads/main/services/viber-ip-de.lst"
+  nft add set inet fw4 "$TPROXY_IP_SET" '{ type ipv4_addr; flags interval; }' 2> /dev/null || true
+  : > "$TELEGRAM_IP_FILE.tmp"
+  : > "$WARP_IP_FILE.tmp"
+  _fetch_ip_list "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Subnets/IPv4/telegram.lst" "$TELEGRAM_IP_FILE.tmp"
+  _fetch_ip_list "https://raw.githubusercontent.com/routir/unblock/refs/heads/main/services/viber-ip-de.lst" "$WARP_IP_FILE.tmp"
+  _install_ip_file "$TELEGRAM_IP_FILE"
+  _install_ip_file "$WARP_IP_FILE"
+  _write_tproxy_rules
+  _populate_tproxy_set
   echo "Restarting mihomo..." >&2
   /etc/init.d/mihomo restart
   exit 0
 }
 
+# Elements are inlined so a bare `fw4 reload` restores them without rerunning pbr. The file is
+# included into `table inet fw4`, so one overlapping CIDR would break the whole ruleset at boot:
+# validate before installing. This nft build rejects `auto-merge`.
 _write_tproxy_rules() {
   mkdir -p "$(dirname "$TPROXY_NFT_FILE")"
-  cat > "$TPROXY_NFT_FILE" <<EOF
+  local elements
+  elements=$(_tproxy_elements)
+  # This file is the only copy that survives a cold boot, so a run with no data must not empty it.
+  if [ -z "$elements" ] && grep -q 'elements = ' "$TPROXY_NFT_FILE" 2> /dev/null; then
+    echo "WARNING: no IP data this run, keeping existing $TPROXY_NFT_FILE and its persisted elements" >&2
+    return
+  fi
+  _render_tproxy_rules "$elements" > "$TPROXY_NFT_FILE.tmp"
+  if ! _nft_file_valid "$TPROXY_NFT_FILE.tmp"; then
+    echo "WARNING: inline elements rejected by nft, writing rules without them" >&2
+    _render_tproxy_rules "" > "$TPROXY_NFT_FILE.tmp"
+    if ! _nft_file_valid "$TPROXY_NFT_FILE.tmp"; then
+      rm -f "$TPROXY_NFT_FILE.tmp"
+      echo "ERROR: generated nft rules invalid, keeping existing $TPROXY_NFT_FILE" >&2
+      return
+    fi
+  fi
+  mv "$TPROXY_NFT_FILE.tmp" "$TPROXY_NFT_FILE"
+  echo "Wrote $TPROXY_NFT_FILE for fake-IP subnet $FAKEIP_SUBNET" >&2
+}
+
+_render_tproxy_rules() {
+  local elements="$1"
+  local elements_line=""
+  [ -n "$elements" ] && elements_line="	elements = { $elements }"
+  cat <<EOF
+set $TPROXY_IP_SET {
+	type ipv4_addr
+	flags interval
+$elements_line
+}
+
 chain prerouting_tproxy {
 	type filter hook prerouting priority mangle; policy accept;
 
 	ip daddr $FAKEIP_SUBNET meta mark set 0x1
-	ip daddr $FAKEIP_SUBNET meta l4proto { tcp, udp } tproxy ip to :12342 accept
+	ip daddr $FAKEIP_SUBNET meta l4proto { tcp, udp } counter tproxy ip to :12342 accept
+
+	iifname "br-lan" ip daddr @$TPROXY_IP_SET meta l4proto { tcp, udp } meta mark set 0x1
+	iifname "br-lan" ip daddr @$TPROXY_IP_SET meta l4proto { tcp, udp } counter tproxy ip to :12342 accept
 }
 EOF
-  echo "Wrote $TPROXY_NFT_FILE for fake-IP subnet $FAKEIP_SUBNET" >&2
+}
+
+_nft_file_valid() {
+  local file="$1"
+  local rc
+  { echo "table inet pbrcheck {"; cat "$file"; echo "}"; } > "$file.check"
+  nft -c -f "$file.check" 2> /dev/null
+  rc=$?
+  rm -f "$file.check"
+  return "$rc"
 }
 
 _process_rule_set() {
@@ -57,21 +116,68 @@ _process_rule_set() {
     downloaded="${downloaded}${data}\n"
   done
   printf "%b" "$downloaded" | tr -d '\r' | awk 'NF>0 && !/^#/{print $1}' | sed 's#^\.##' | sort -u | awk 'NF>0 {print "+." $1}' > "$output.tmp"
-  mv "$output.tmp" "$output"
-  echo "Wrote $(wc -l < "$output") entries to $output" >&2
+  if [ -s "$output.tmp" ]; then
+    mv "$output.tmp" "$output"
+    echo "Wrote $(wc -l < "$output") entries to $output" >&2
+  else
+    rm -f "$output.tmp"
+    echo "WARNING: no data fetched for $list_name, keeping existing $output" >&2
+  fi
 }
 
-_process_ip_set() {
-  local set_name="$1"
-  local url="$2"
-  echo "Processing IP set $set_name from $url..." >&2
+_fetch_ip_list() {
+  local url="$1"
+  local target="$2"
+  echo "Fetching IP list $url..." >&2
   local data=""
   for i in $(seq 1 5); do
     data=$(curl --connect-timeout 5 --max-time 15 -sSLf "$url") && break
     sleep 3
   done
-  [ -z "$data" ] && return
+  if [ -z "$data" ]; then
+    echo "  - WARNING: fetch failed for $url" >&2
+    return
+  fi
+  echo "$data" | tr -d '\r' | grep -v ':' | awk 'NF>0 && !/^#/{print $1}' >> "$target"
+}
+
+_install_ip_file() {
+  local file="$1"
+  if [ -s "$file.tmp" ]; then
+    mv "$file.tmp" "$file"
+    echo "Wrote $(wc -l < "$file") entries to $file" >&2
+  else
+    rm -f "$file.tmp"
+    echo "WARNING: no data fetched, keeping existing $file" >&2
+  fi
+}
+
+_tproxy_elements() {
+  cat "$TELEGRAM_IP_FILE" "$WARP_IP_FILE" 2> /dev/null \
+    | awk 'NF>0{print $1}' | sort -u | awk '{printf "%s, ",$1}' | sed 's/, $//'
+}
+
+_populate_tproxy_set() {
   local ips
-  ips=$(echo "$data" | tr -d '\r' | grep -v ':' | awk 'NF>0{printf "%s,",$1}' | sed 's/,$//')
-  [ -n "$ips" ] && nft add element inet fw4 "$set_name" { $ips } 2> /dev/null
+  [ -s "$TELEGRAM_IP_FILE" ] || echo "WARNING: $TELEGRAM_IP_FILE is empty, Telegram DC IPs will NOT be tproxied" >&2
+  [ -s "$WARP_IP_FILE" ] || echo "WARNING: $WARP_IP_FILE is empty, Viber ranges will NOT be tproxied" >&2
+  ips=$(_tproxy_elements)
+  if [ -z "$ips" ]; then
+    echo "WARNING: no IPs available, keeping existing nft set $TPROXY_IP_SET" >&2
+    return
+  fi
+  nft flush set inet fw4 "$TPROXY_IP_SET" 2> /dev/null || true
+  if ! nft add element inet fw4 "$TPROXY_IP_SET" { $ips } 2> /dev/null; then
+    echo "  - bulk add rejected, falling back to per-element add" >&2
+    for ip in $(cat "$TELEGRAM_IP_FILE" "$WARP_IP_FILE" 2> /dev/null | awk 'NF>0{print $1}' | sort -u); do
+      nft add element inet fw4 "$TPROXY_IP_SET" { $ip } 2> /dev/null || echo "  - skipped $ip" >&2
+    done
+  fi
+  local n
+  n=$(nft list set inet fw4 "$TPROXY_IP_SET" 2> /dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}(/[0-9]+)?' | wc -l)
+  if [ "${n:-0}" -gt 0 ]; then
+    echo "Populated nft set $TPROXY_IP_SET with $n elements" >&2
+  else
+    echo "ERROR: nft set $TPROXY_IP_SET is EMPTY - raw Telegram/Viber IPs will bypass mihomo" >&2
+  fi
 }

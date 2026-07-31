@@ -22,13 +22,20 @@ Current intended VPN flow:
 1. `RULE-SET,vpn` routes to `VPN-PREFERRED`.
 2. `VPN-PREFERRED` is a `fallback` group.
 3. `VPN-PREFERRED` first tries `VPN-ALL-AUTO`.
-4. `VPN-ALL-AUTO` is a `url-test` group using providers `aetris`, `mifa`, and `purple`.
+4. `VPN-ALL-AUTO` is a `url-test` group using proxy-provider `stable`.
 5. If subscription nodes are unusable, `VPN-PREFERRED` falls back to `VPN`, the direct `awg2` path.
 
 Current intended WARP flow:
 
 1. `RULE-SET,warp` routes to `WARP`.
-2. `WARP` falls back from `WARP-AWG1` to `WARP-AWG0`.
+2. `WARP` is primary `WARP-AWG0` (`awg0`, Belarus) with fallback to `WARP-AWG1` (`awg1`, Cloudflare WARP).
+
+Current intended Telegram flow:
+
+1. `RULE-SET,telegram,WARP-AWG0` and `RULE-SET,telegram_ip,WARP-AWG0,no-resolve` target the *proxy* `WARP-AWG0`, never the `WARP` group: `awg1` passes the group's `cp.cloudflare.com` probe but cannot carry Telegram TCP, so a group fallback would turn an `awg0` outage into a silent hang.
+2. Both rules must stay above `RULE-SET,warp` and `RULE-SET,warp_ip`.
+3. `RULE-SET,telegram,fake-ip` must stay in `dns.fake-ip-filter`; without it Telegram domains resolve to real Cloudflare IPs that no set covers and egress to the ISP-blocked WAN.
+4. Native-app traffic to raw DC IPs enters mihomo only via the nft set `tproxy_ip4` that `pbr` writes into `/etc/nftables.d/99-tproxy.nft`.
 
 ## Review Checklist
 
@@ -43,6 +50,8 @@ When reviewing or editing config, check all of these:
 - `url-test` `tolerance` is intentional: lower values switch more eagerly; higher values are stickier.
 - `.lan` and `.local` names stay `real-ip` in `fake-ip-filter`.
 - `MATCH,DIRECT` remains the final fallback rule unless the user explicitly asks otherwise.
+- Telegram rules still target `WARP-AWG0` directly, still precede the `warp` rules, and `telegram` is still listed in `dns.fake-ip-filter`.
+- Domain rule-providers (`vpn`, `warp`, `telegram`) stay `behavior: domain` with `+.<domain>` lines; IP rule-providers (`telegram_ip`, `warp_ip`) stay `behavior: ipcidr` with bare CIDR lines.
 
 ## Required Validation
 
