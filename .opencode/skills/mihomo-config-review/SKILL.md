@@ -19,11 +19,9 @@ Important repo files:
 
 Current intended VPN flow:
 
-1. `RULE-SET,vpn` routes to `VPN-PREFERRED`.
-2. `VPN-PREFERRED` is a `fallback` group.
-3. `VPN-PREFERRED` first tries `VPN-ALL-AUTO`.
-4. `VPN-ALL-AUTO` is a `url-test` group using proxy-provider `stable`.
-5. If subscription nodes are unusable, `VPN-PREFERRED` falls back to `VPN`, the direct `awg2` path.
+1. `RULE-SET,vpn` routes to `VPN-ALL-AUTO`.
+2. `VPN-ALL-AUTO` is a `url-test` group using proxy-provider `stable`. The path is subscription-only; there is no AmneziaWG fallback.
+3. `empty-fallback: REJECT` must stay: the default `COMPATIBLE` is a direct outbound with no interface bind, so an empty provider would leak `vpn` domains to the raw WAN.
 
 Current intended WARP flow:
 
@@ -51,6 +49,7 @@ When reviewing or editing config, check all of these:
 - `.lan` and `.local` names stay `real-ip` in `fake-ip-filter`.
 - `MATCH,DIRECT` remains the final fallback rule unless the user explicitly asks otherwise.
 - Telegram rules still target `WARP-AWG0` directly, still precede the `warp` rules, and `telegram` is still listed in `dns.fake-ip-filter`.
+- `empty-fallback: REJECT` on `VPN-ALL-AUTO` is not removed.
 - Domain rule-providers (`vpn`, `warp`, `telegram`) stay `behavior: domain` with `+.<domain>` lines; IP rule-providers (`telegram_ip`, `warp_ip`) stay `behavior: ipcidr` with bare CIDR lines.
 
 ## Required Validation

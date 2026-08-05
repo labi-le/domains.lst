@@ -9,11 +9,6 @@ iptables:
   inbound-interface: br-lan
 
 proxies:
-  - name: VPN
-    type: direct
-    udp: true
-    interface-name: awg2
-
   - name: WARP-AWG1
     type: direct
     udp: true
@@ -79,23 +74,10 @@ proxy-groups:
     lazy: false
     expected-status: 200-399
     max-failed-times: 1
-    # An empty `stable` provider (host down at boot, tmpfs cache gone) makes the group
-    # resolve to COMPATIBLE - a plain direct outbound with no interface bind - so vpn
-    # domains would egress the WAN. REJECT keeps it fail-closed and lets VPN-PREFERRED
-    # drop to awg2 instead.
+    # Subscription-only by design: no awg fallback, so an empty `stable` provider must not
+    # degrade to COMPATIBLE, a plain direct outbound with no interface bind, which would
+    # egress vpn domains straight to the WAN. REJECT makes that case a killswitch.
     empty-fallback: REJECT
-
-  - name: VPN-PREFERRED
-    type: fallback
-    proxies:
-      - VPN-ALL-AUTO
-      - VPN
-    url: "https://platform.claude.com/"
-    interval: 60
-    lazy: false
-    timeout: 1000
-    expected-status: 200-399
-    max-failed-times: 1
 
 rule-providers:
   vpn:
@@ -129,7 +111,7 @@ rule-providers:
     format: text
 
 rules:
-  - RULE-SET,vpn,VPN-PREFERRED
+  - RULE-SET,vpn,VPN-ALL-AUTO
   - RULE-SET,telegram,WARP-AWG0
   - RULE-SET,telegram_ip,WARP-AWG0,no-resolve
   - RULE-SET,warp,WARP

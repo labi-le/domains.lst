@@ -6,6 +6,25 @@ START=99
 script=$(readlink "$initscript")
 NAME="$(basename ${script:-$initscript})"
 PROG="/usr/bin/mihomo"
+SEED_DIR="/etc/mihomo/rules"
+
+# The workdir is tmpfs, so a reboot wipes every rule-provider file. mihomo tolerates a missing
+# file but then matches nothing, and vpn/warp/telegram domains fall through to MATCH,DIRECT and
+# egress the raw WAN until pbr finishes refetching. Restore pbr's persisted copy first.
+seed_rules() {
+	local workdir="$1" user="$2" group="$3"
+	local file target
+
+	[ -d "$SEED_DIR" ] || return 0
+	mkdir -p "$workdir/rules"
+	for file in "$SEED_DIR"/*.txt; do
+		[ -s "$file" ] || continue
+		target="$workdir/rules/${file##*/}"
+		[ -s "$target" ] && continue
+		cp "$file" "$target"
+	done
+	chown -R "$user:$group" "$workdir/rules"
+}
 
 start_service() {
 	config_load "$NAME"
@@ -22,6 +41,7 @@ start_service() {
 	mkdir -p "$workdir"
 	local group="$(id -ng "$user")"
 	chown "$user:$group" "$workdir"
+	seed_rules "$workdir" "$user" "$group"
 
 	procd_open_instance "$NAME.main"
 	procd_set_param command "$PROG" -d "$workdir" -f "$conffile"

@@ -64,14 +64,15 @@ nix-shell --run 'mihomo-fetch-router linux-arm64 /tmp'
 
 ## Current Routing Intent
 
-- `RULE-SET,vpn` routes to `VPN-PREFERRED`.
-- `VPN-PREFERRED` first uses `VPN-ALL-AUTO`, then falls back to `VPN` on `awg2`.
-- `VPN-ALL-AUTO` is a `url-test` group over proxy-provider `stable`.
+- `RULE-SET,vpn` routes to `VPN-ALL-AUTO`, a `url-test` group over proxy-provider `stable`.
+- The VPN path is subscription-only: there is no AmneziaWG fallback behind it and no interface-bound VPN proxy.
+- `empty-fallback: REJECT` on `VPN-ALL-AUTO` must stay. The default `COMPATIBLE` is a direct outbound with no interface bind, so an empty `stable` provider (host down, `/tmp` cache lost on reboot) would send `vpn` domains out the raw WAN. `REJECT` makes that an explicit killswitch.
 - `RULE-SET,warp` routes to `WARP`, which falls back from `WARP-AWG0` (`awg0`) to `WARP-AWG1` (`awg1`).
 - Telegram is pinned to Belarus (`awg0`) via a **single path inside mihomo, with no fallback**. `pbr` fetches `Services/telegram.lst` into `telegram.txt` instead of feeding it to the `warp` set (nothing subtracts Telegram entries from the other warp sources, so rule order is what protects the pin), and `Subnets/IPv4/telegram.lst` into `telegram_ip.txt`. Both route to the proxy `WARP-AWG0` directly, not to the `WARP` group: `RULE-SET,telegram,WARP-AWG0` and `RULE-SET,telegram_ip,WARP-AWG0,no-resolve`, which MUST stay ordered above the `warp` rules. Native-app connections to raw DC IPs reach mihomo because `pbr` TPROXYs the nft set `tproxy_ip4` (Telegram + Viber ranges) to `:12342`. The `telegram` rule-provider must also appear in `dns.fake-ip-filter` as `RULE-SET,telegram,fake-ip`, otherwise Telegram domains fall to `MATCH,real-ip` and resolve to Cloudflare IPs that are absent from `tproxy_ip4`, going straight to the ISP-blocked WAN.
 - Pinning is deliberate: `awg1` passes the `WARP` group's `cp.cloudflare.com` probe but cannot carry Telegram TCP, so a fallback there would convert a loud `awg0` failure into a silent hang. Telegram now fails explicitly if `awg0` is down, while the remaining `warp` domains keep the honest `awg0` → `awg1` fallback. Viber IPs stay on the group via `RULE-SET,warp_ip,WARP,no-resolve`.
 - The old split path is gone: firewall rule `mark_warp_domains` (mark `0x3`), ipset `warp_domains`, ip rule `fwmark 0x3 lookup warp`, `table warp` and hotplug `/etc/hotplug.d/iface/40-warp` were all removed. An optional on-router `tg-ws-proxy` (SOCKS5 `:17023`) still exists.
 - `awg0`'s peer is addressed as `192.168.1.2` directly (UCI `network.@amneziawg_awg0[0].endpoint_host`). Do not set it back to `labile.cc`: that name resolves to `192.168.1.2` via the dnsmasq override but to the router's own WAN IP publicly, so if the ifup-time resolver ever answers with the public record the tunnel points at the router itself and receives nothing. This setting lives only in router UCI and is not tracked in this repository, so nothing here enforces it.
+- Rule files are mirrored to `/etc/mihomo/rules` by `pbr` and seeded back into `/tmp/mihomo/rules` by `mihomo/init.d` before mihomo starts. Without that, a reboot leaves every rule-provider empty and all of `vpn`, `warp` and `telegram` fall through to `MATCH,DIRECT` until `pbr` has refetched. The seed never overwrites a workdir file that already has content.
 - `MATCH,DIRECT` remains the final rule.
 
 ## Verification Expectations

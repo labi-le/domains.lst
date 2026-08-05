@@ -21,6 +21,7 @@ Runtime paths on the router:
 - `/tmp/mihomo/rules/vpn.txt`
 - `/tmp/mihomo/rules/warp.txt`
 - `/tmp/mihomo/providers/*.yaml`
+- `/etc/mihomo/rules/*.txt` (persisted mirror, seeded back into `/tmp/mihomo/rules` at boot)
 
 Never use `/tmp/mihomo` as a temporary binary filename; it is the runtime directory.
 
@@ -95,8 +96,8 @@ ssh router '/etc/init.d/mihomo restart'
 
 ```sh
 ssh router 'ss -ltnup 2>/dev/null | grep -E "12342|12344"'
-ssh router 'logread | grep mihomo | grep -E "RuleSet\(vpn\)|RuleSet\(warp\)|using VPN-PREFERRED|using WARP|using DIRECT"'
-ssh router 'ls -lh /tmp/mihomo/cache.db /tmp/mihomo/rules/vpn.txt /tmp/mihomo/rules/warp.txt /tmp/mihomo/providers/'
+ssh router 'logread | grep mihomo | grep -E "RuleSet\(vpn\)|RuleSet\(warp\)|using VPN-ALL-AUTO|using WARP|using DIRECT"'
+ssh router 'ls -lh /tmp/mihomo/cache.db /tmp/mihomo/rules/vpn.txt /etc/mihomo/rules/vpn.txt /tmp/mihomo/providers/'
 ```
 
 ## Reporting

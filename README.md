@@ -32,6 +32,7 @@ service pbr start
 /etc/mihomo/config.yaml  -> static config
 /tmp/mihomo/cache.db     -> mutable cache
 /tmp/mihomo/rules/*      -> generated rule providers
+/etc/mihomo/rules/*      -> persisted copy, seeded back into /tmp at boot
 /tmp/mihomo/providers/*  -> downloaded proxy providers
 ```
 

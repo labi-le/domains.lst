@@ -6,6 +6,7 @@ TPROXY_NFT_FILE="/etc/nftables.d/99-tproxy.nft"
 TPROXY_IP_SET="tproxy_ip4"
 TELEGRAM_IP_FILE="/tmp/mihomo/rules/telegram_ip.txt"
 WARP_IP_FILE="/tmp/mihomo/rules/warp_ip.txt"
+PERSIST_DIR="/etc/mihomo/rules"
 
 start() {
   mkdir -p /tmp/mihomo/rules
@@ -118,11 +119,21 @@ _process_rule_set() {
   printf "%b" "$downloaded" | tr -d '\r' | awk 'NF>0 && !/^#/{print $1}' | sed 's#^\.##' | sort -u | awk 'NF>0 {print "+." $1}' > "$output.tmp"
   if [ -s "$output.tmp" ]; then
     mv "$output.tmp" "$output"
+    _persist_rule "$output"
     echo "Wrote $(wc -l < "$output") entries to $output" >&2
   else
     rm -f "$output.tmp"
     echo "WARNING: no data fetched for $list_name, keeping existing $output" >&2
   fi
+}
+
+# /tmp/mihomo/rules is tmpfs. Without this copy a reboot leaves every rule-provider empty and
+# mihomo sends those domains to MATCH,DIRECT until this script has refetched everything; the
+# mihomo init script seeds the workdir back from here on boot.
+_persist_rule() {
+  local file="$1"
+  mkdir -p "$PERSIST_DIR"
+  cp "$file" "$PERSIST_DIR/${file##*/}" || echo "  - WARNING: could not persist $file" >&2
 }
 
 _fetch_ip_list() {
@@ -145,6 +156,7 @@ _install_ip_file() {
   local file="$1"
   if [ -s "$file.tmp" ]; then
     mv "$file.tmp" "$file"
+    _persist_rule "$file"
     echo "Wrote $(wc -l < "$file") entries to $file" >&2
   else
     rm -f "$file.tmp"

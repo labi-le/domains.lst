@@ -27,17 +27,15 @@
 
 - `awg0`: Belarus VPN
 - `awg1`: Cloudflare WARP
-- `awg2`: Finland VPN
+- `awg2`: Finland VPN, no longer referenced by mihomo
 
 ## Routing
 
 ### VPN Path
 
-- `RULE-SET,vpn` uses `VPN-PREFERRED`.
-- `VPN-PREFERRED` is a `fallback` group.
-- Primary path is `VPN-ALL-AUTO`.
+- `RULE-SET,vpn` uses `VPN-ALL-AUTO`.
 - `VPN-ALL-AUTO` is a `url-test` group built from proxy-provider `stable`, a pre-filtered raw URI list served by sub-preprocessor at `http://192.168.1.2:7008/stable.txt`.
-- If subscription nodes fail health or dialing, fallback goes to `VPN`, which is the direct `awg2` path.
+- There is no fallback outside the subscription. If the provider yields no nodes, `empty-fallback: REJECT` resolves the group to `REJECT`; if every node fails its health check, the dial to the selected node fails. Either way `vpn` domains never reach the WAN directly.
 
 ### WARP Path
 
@@ -82,13 +80,15 @@
 - `/tmp/mihomo/rules/telegram_ip.txt`
 - `/tmp/mihomo/rules/warp_ip.txt`
 - `/tmp/mihomo/providers/stable.yaml`
+- `/etc/mihomo/rules/*.txt` (persisted mirror of the five rule files, seeded back into the workdir at boot)
 
 ## Important Files In This Repository
 
 - `mihomo/config.yaml` contains the static `mihomo` configuration.
 - `mihomo/init.d` contains the procd init script for `mihomo`.
 - `mihomo/config` contains the UCI service configuration for `mihomo`.
-- `pbr` regenerates the rule-provider files under `/tmp/mihomo/rules` (`vpn`, `warp`, `telegram`, `telegram_ip`, `warp_ip`), rewrites `/etc/nftables.d/99-tproxy.nft` for the current fake-IP subnet, declares and populates the nft set `tproxy_ip4` that TPROXYs Telegram/Viber IPv4 ranges into mihomo, and restarts `mihomo`. It `touch`es every rule-provider file first, which makes the degraded state deterministic. Verified on v1.19.27: a missing `type: file` path does **not** stop mihomo — it starts and serves, logs `initial rule provider <name> error: ... no such file or directory`, and that provider matches nothing, so traffic falls through to `MATCH,DIRECT` instead of the intended tunnel. Also verified: a rule file created *after* mihomo started is picked up without a restart, so recovery does not depend on the `touch`.
+- `pbr` regenerates the rule-provider files under `/tmp/mihomo/rules` (`vpn`, `warp`, `telegram`, `telegram_ip`, `warp_ip`), mirrors each installed file to `/etc/mihomo/rules`, rewrites `/etc/nftables.d/99-tproxy.nft` for the current fake-IP subnet, declares and populates the nft set `tproxy_ip4` that TPROXYs Telegram/Viber IPv4 ranges into mihomo, and restarts `mihomo`. It `touch`es every rule-provider file first, which makes the degraded state deterministic. Verified on v1.19.27: a missing `type: file` path does **not** stop mihomo — it starts and serves, logs `initial rule provider <name> error: ... no such file or directory`, and that provider matches nothing, so traffic falls through to `MATCH,DIRECT` instead of the intended tunnel. Also verified: a rule file created *after* mihomo started is picked up without a restart, so recovery does not depend on the `touch`.
+- `mihomo/init.d` seeds `$workdir/rules` from `/etc/mihomo/rules` before launching mihomo, copying only persisted files that are non-empty and only over workdir files that are missing or empty, so a fresh `pbr` write is never clobbered.
 - `REFERENCE_MAP.md` maps repository files to router paths and lists external sources.
 
 ## Operational Notes
@@ -98,6 +98,6 @@
 - Rule-provider format is a contract between `pbr` and `mihomo/config.yaml`. `pbr` emits `+.<domain>` lines for `vpn.txt`, `warp.txt` and `telegram.txt`, and all three providers must stay `behavior: domain`. Do not switch back to `behavior: classical` with `DOMAIN-SUFFIX,` lines: mihomo's `DOMAIN-SUFFIX` matcher is case-sensitive on the query side (`rules/common/domain_suffix.go`) and `withFakeIP` does not lowercase the query name, so a mixed-case lookup like `ChatGPT.com` misses the rule set, falls through `fake-ip-filter` to `MATCH,real-ip`, and returns the real IP. `dnsmasq` caches case-insensitively, so one such query poisons the entry for every case variant until its upstream TTL expires. `behavior: domain` is immune because its matcher lowercases internally. The IP providers `telegram_ip`/`warp_ip` are a separate contract: `pbr` emits bare IPv4 CIDR lines (no `+.` prefix, IPv6 filtered out) and both must stay `behavior: ipcidr`. Format and behaviour must always change together, and `pbr` must be deployed and run before (or with) the config, never the config alone.
 - `pbr` writes every generated file atomically (`.tmp` then `mv`): `_process_rule_set` for `vpn`/`warp`/`telegram`, `_install_ip_file` for `telegram_ip`/`warp_ip`, and `_write_tproxy_rules` for the nft include. Keep it that way: `mihomo` hot-reloads the rule files via fsnotify, so an in-place truncating redirect exposes a window where the rule set is empty — `vpn`/`warp`/`telegram` domains then resolve to their real IPs, and an empty IP file additionally propagates into the `tproxy_ip4` nft set.
 - The nft include carries its set elements inline, so a bare `fw4 reload` (LuCI edit, port forward, `/etc/init.d/firewall reload`) restores `tproxy_ip4` without rerunning `pbr` — verified: 31 elements before and after a reload with no `pbr` run. Because the file is included into `table inet fw4`, one overlapping CIDR from upstream would otherwise break the whole ruleset at boot, so `pbr` validates the rendered file inside a throwaway table (`nft -c`) and falls back to writing it without inline elements if validation fails. This nft build rejects `flags interval,auto-merge`, so overlaps cannot be merged away — the validation fallback is the only guard.
-- Mutable `mihomo` runtime data should stay under `/tmp/mihomo`, not `/etc/mihomo`, to avoid unnecessary flash writes.
+- Mutable `mihomo` runtime data should stay under `/tmp/mihomo`, not `/etc/mihomo`, to avoid unnecessary flash writes. `/etc/mihomo/rules` is the deliberate exception: five small text files rewritten per `pbr` run (weekly by cron) buy a boot that starts with the last known good rule sets instead of a guaranteed `MATCH,DIRECT` window.
 - The temporary binary staging path for `mihomo` must not reuse `/tmp/mihomo`, because that path is now the runtime directory.
-- Known limitation: `/tmp` is tmpfs, so every reboot wipes `/tmp/mihomo/rules`. The "keeping existing" fallbacks in `pbr` therefore protect a re-run, not a cold boot — on a fresh boot they keep the empty file `touch` just created. If the fetches fail at boot, **all** Telegram breaks, not just some domains: `telegram.txt` is empty so its domains fall through `fake-ip-filter` to `MATCH,real-ip` and get Cloudflare addresses no set covers, and `telegram_ip.txt` is empty too, so raw DC IPs are still TPROXY'd into mihomo (the nft set is restored from the persisted `/etc` file) but then match no rule and land on `MATCH,DIRECT`. Membership in `tproxy_ip4` only delivers a packet *into* mihomo; the routing decision still needs a non-empty rule set. `pbr` deliberately does not overwrite the persisted nft file on a no-data run, so the ranges themselves survive. Shipping a checked-in seed copy of the rule files, or persisting them outside tmpfs, is the fix if this ever bites.
+- `/tmp` is tmpfs, so every reboot wipes `/tmp/mihomo/rules`, and the "keeping existing" fallbacks in `pbr` protect a re-run rather than a cold boot — on a fresh boot they would keep the empty file `touch` just created. The `/etc/mihomo/rules` mirror plus the init-script seed is what closes that window. Without it, a boot whose fetches fail breaks **all** Telegram, not just some domains: `telegram.txt` is empty so its domains fall through `fake-ip-filter` to `MATCH,real-ip` and get Cloudflare addresses no set covers, and `telegram_ip.txt` is empty too, so raw DC IPs are still TPROXY'd into mihomo (the nft set is restored from the persisted `/etc` file) but then match no rule and land on `MATCH,DIRECT`. Membership in `tproxy_ip4` only delivers a packet *into* mihomo; the routing decision still needs a non-empty rule set. The seed only helps after one successful `pbr` run: a first install still boots with empty rule sets.

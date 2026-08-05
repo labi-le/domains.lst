@@ -22,6 +22,7 @@ Mutable runtime files:
 - `/tmp/mihomo/rules/telegram_ip.txt`
 - `/tmp/mihomo/rules/warp_ip.txt`
 - `/tmp/mihomo/providers/stable.yaml`
+- `/etc/mihomo/rules/*.txt` (persisted mirror, seeded back into `/tmp/mihomo/rules` at boot)
 
 Do not use `/tmp/mihomo` as a temporary binary filename. It is the runtime directory.
 
@@ -161,7 +162,7 @@ or any edit to the rule text itself, needs the reload above.
 
 ```sh
 ssh router 'ss -ltnup 2>/dev/null | grep -E "12342|12344"'
-ssh router 'ls -lh /tmp/mihomo/cache.db /tmp/mihomo/rules/*.txt /tmp/mihomo/providers/stable.yaml'
+ssh router 'ls -lh /tmp/mihomo/cache.db /tmp/mihomo/rules/*.txt /etc/mihomo/rules/*.txt /tmp/mihomo/providers/stable.yaml'
 ssh router 'dig +short chatgpt.com @127.0.0.1 -p 53'
 ssh router 'dig +short rutracker.org @127.0.0.1 -p 53'
 ssh router 'dig +short web.telegram.org @127.0.0.1 -p 53'
@@ -185,14 +186,15 @@ one means the `telegram` entry is missing from `dns.fake-ip-filter`. The raw DC 
 ### Log Checks
 
 ```sh
-ssh router 'logread | grep mihomo | grep -E "RuleSet\(vpn\)|RuleSet\(telegram\)|RuleSet\(telegram_ip\)|RuleSet\(warp\)|RuleSet\(warp_ip\)|using VPN-PREFERRED|using WARP-AWG0|using WARP\[|using DIRECT"'
+ssh router 'logread | grep mihomo | grep -E "RuleSet\(vpn\)|RuleSet\(telegram\)|RuleSet\(telegram_ip\)|RuleSet\(warp\)|RuleSet\(warp_ip\)|using VPN-ALL-AUTO|using WARP-AWG0|using WARP\[|using DIRECT"'
 ```
 
 Expected current routing behavior:
 
-- `vpn` domains -> `VPN-PREFERRED`
-- `VPN-PREFERRED` -> `VPN-ALL-AUTO` primary -> `VPN` (`awg2`) fallback
-- `VPN-ALL-AUTO` selects across proxy-provider `stable`
+- `vpn` domains -> `VPN-ALL-AUTO`
+- `VPN-ALL-AUTO` selects the lowest-latency node across proxy-provider `stable`
+- no awg fallback: an empty provider yields `REJECT` via `empty-fallback`, so `vpn` domains fail
+  instead of leaking to the WAN
 - `warp` domains -> `WARP` (primary `WARP-AWG0`/`awg0`, fallback `WARP-AWG1`/`awg1`)
 - Telegram domains -> `WARP-AWG0` directly (pinned to `awg0`, no fallback)
 - Telegram raw DC IPs -> TPROXY via nft set `tproxy_ip4` -> `RULE-SET,telegram_ip,WARP-AWG0,no-resolve`
