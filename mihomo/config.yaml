@@ -79,6 +79,11 @@ proxy-groups:
     lazy: false
     expected-status: 200-399
     max-failed-times: 1
+    # An empty `stable` provider (host down at boot, tmpfs cache gone) makes the group
+    # resolve to COMPATIBLE - a plain direct outbound with no interface bind - so vpn
+    # domains would egress the WAN. REJECT keeps it fail-closed and lets VPN-PREFERRED
+    # drop to awg2 instead.
+    empty-fallback: REJECT
 
   - name: VPN-PREFERRED
     type: fallback
