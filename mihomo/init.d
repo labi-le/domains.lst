@@ -26,6 +26,30 @@ seed_rules() {
 	chown -R "$user:$group" "$workdir/rules"
 }
 
+# mihomo opens its DNS listener before the rule-providers finish loading, so the first queries
+# after a start are answered by MATCH,real-ip. Measured: the very first answer for a `vpn`
+# domain is the real address, the next one is already the fake IP. dnsmasq then pins that real
+# address for the whole upstream TTL (300s for chatgpt.com), and for those minutes the domain
+# never reaches mihomo at all - no rule set, no killswitch, straight out the WAN. Drop the
+# cache once mihomo is really serving, and once more later in case the boot was slow.
+flush_dns_cache() {
+	local conffile="$1"
+	local dnsport i=0
+
+	dnsport=$(sed -n 's/^[[:space:]]*listen:[[:space:]]*[0-9.]*:\([0-9][0-9]*\).*/\1/p' "$conffile" | head -1)
+	if [ -n "$dnsport" ]; then
+		while [ "$i" -lt 60 ]; do
+			netstat -lnu 2> /dev/null | grep -qE ":${dnsport}[[:space:]]" && break
+			sleep 1
+			i=$((i + 1))
+		done
+	fi
+	sleep 3
+	killall -HUP dnsmasq 2> /dev/null
+	sleep 12
+	killall -HUP dnsmasq 2> /dev/null
+}
+
 start_service() {
 	config_load "$NAME"
 
@@ -52,6 +76,8 @@ start_service() {
 	procd_set_param stderr 1
 	procd_set_param respawn
 	procd_close_instance
+
+	flush_dns_cache "$conffile" &
 }
 
 service_triggers() {
