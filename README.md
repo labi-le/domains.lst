@@ -62,8 +62,15 @@ service external-dns start
 ```
 
 #### weekly refresh
+`service pbr enable` only schedules `pbr` at boot — the crontab entry is a separate
+step, easy to forget.
 ```sh
 sh -c '(crontab -l 2>/dev/null; echo "0 6 * * 0 /etc/init.d/pbr start") | crontab -'
+```
+Freshness is the mtime of the generated files, nothing else. A date older than a week
+means the refresh never ran, whatever `service pbr enabled` reports.
+```sh
+ls -l /etc/mihomo/rules/
 ```
 
 #### packages

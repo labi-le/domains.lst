@@ -120,6 +120,10 @@ mihomo -t -d /tmp/mihomo -f mihomo/config.yaml
 scp mihomo/config.yaml router:/etc/mihomo/config.yaml
 ```
 
+A successful `mihomo -t` does not prove a key name exists: unrecognised keys are accepted silently and
+then ignored at runtime. To prove a key is parsed, temporarily give it an invalid value and confirm the
+test fails.
+
 `mihomo-deploy-config` runs the local YAML parse and `mihomo -t` checks first, then copies `mihomo/config.yaml` to `router:/etc/mihomo/config.yaml`.
 
 To fetch the latest router `mihomo` binary for ARM64 and compress it with UPX:

@@ -75,6 +75,7 @@ nix-shell --run 'mihomo-fetch-router linux-arm64 /tmp'
 - Rule files are mirrored to `/etc/mihomo/rules` by `pbr` and seeded back into `/tmp/mihomo/rules` by `mihomo/init.d` before mihomo starts. Without that, a reboot leaves every rule-provider empty and all of `vpn`, `warp` and `telegram` fall through to `MATCH,DIRECT` until `pbr` has refetched. The seed never overwrites a workdir file that already has content.
 - The router's `dnsmasq` runs with `cache-size=0` (UCI `dhcp.@dnsmasq[0].cachesize`). Keep it there. mihomo answers DNS before its rule-providers load, so an early query for a `vpn` domain gets a real address; a caching `dnsmasq` then pins it for the upstream TTL while a correct fake-IP answer only carries TTL 1, so wrong answers outlive right ones by two orders of magnitude. While pinned, the domain resolves outside `198.18.1.0/24`, never enters mihomo, and bypasses every rule including the killswitch. Nothing is lost by disabling it: mihomo caches DNS itself, and the `stubby` and `192.168.1.2#5353` forwards sit in front of their own caches. Like the `awg0` endpoint this lives only in router UCI, so nothing here enforces it.
 - `mihomo/init.d` still sends `dnsmasq` a `SIGHUP` a few seconds after mihomo starts. With the cache off it is a no-op; it stays so that an install which has not disabled the cache still narrows the window instead of leaving it open for the whole TTL.
+- Router DNS is deliberately split three ways in UCI `dhcp.@dnsmasq[0]`, and the work domains bypass mihomo on purpose. The eight named hosts (`cloud.dit.mos.ru`, `mapp2fasak-m.mos.ru`, `vpn-ke.mos.ru`, `vpn-dc.mos.ru`, `gate-n.mos.ru`, `gate-k.mos.ru`, `sudir.mos.ru`, `hub.mos.ru`) plus `passport.mos.ru` go to `stubby` on `127.0.0.1#5453`; the catch-all `mos.ru`, `passport.local` and `elocont.ru` go to the LAN resolver `192.168.1.2#5353`; everything else goes to mihomo on `127.0.0.1#12344`. Do not fold these into mihomo's fake-IP flow. They resolve independently of mihomo, so work DNS keeps answering when the proxy stack is down — measured `sudir.mos.ru` → `212.11.155.165-167` via stubby and `*.mos.ru`/`passport.local` → `10.207.221.2` / `10.206.185.x` via the LAN resolver, all in 0 ms. And with `MATCH,real-ip` as the only `fake-ip-filter` default, one stray line in the `vpn` list would put a `198.18.1.0/24` address in front of an internal name and silently break a working domain; a domain-scoped dnsmasq forward makes that structurally impossible. Like the `awg0` endpoint this lives only in router UCI and is not tracked here.
 - `MATCH,DIRECT` remains the final rule.
 
 ## Verification Expectations
@@ -84,6 +85,8 @@ For config changes, run:
 ```sh
 nix-shell --run 'mihomo-validate'
 ```
+
+`mihomo -t` passing does not prove a key name is real: an invented top-level key (`totally-invented-key-xyz: 42`) still yields `test is successful`, while an invalid value for a recognised key (`enhanced-mode: NOT-A-REAL-MODE`) fails. The validator checks values of keys it knows and silently discards names it does not, so a misspelled key passes and then does nothing at runtime. When a change adds or relies on a config key, prove the key is parsed by temporarily giving it a deliberately invalid value and confirming the test fails.
 
 For shell script changes, run ShellCheck when available:
 

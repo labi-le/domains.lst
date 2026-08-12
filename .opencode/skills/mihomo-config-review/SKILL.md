@@ -62,6 +62,31 @@ nix-shell --run 'yq "." mihomo/config.yaml >/dev/null && mihomo -t -d /tmp/mihom
 
 Also run diagnostics for changed files when an LSP is available. If an LSP is not installed, report that limitation explicitly.
 
+### What `mihomo -t` Does Not Prove
+
+`mihomo -t` validates the *values* of keys it recognises and silently discards key names it does not
+recognise. Measured against this repo's `mihomo/config.yaml` with Mihomo Meta v1.19.29:
+
+- unchanged config: `test is successful`
+- plus an invented top-level key `totally-invented-key-xyz: 42`: `test is successful`
+- a real key given an invalid value (`enhanced-mode: NOT-A-REAL-MODE`): `test failed`
+
+So a misspelled or non-existent key passes validation cleanly and then does nothing at runtime: the
+config looks correct while the behaviour it was supposed to produce is simply absent.
+
+Therefore, when a change adds or depends on a config key:
+
+- Temporarily set that key to a deliberately invalid value and re-run the validation command.
+- Require `test failed`. That failure is the only evidence the key name is actually parsed.
+- Restore the intended value and confirm the test passes again before reporting the change as valid.
+
+Worked case, `empty-fallback` on a proxy-group: `empty-fallback: REJECT` passes, and the bogus
+`empty-fallback: NOPE-DOES-NOT-EXIST` fails. Together those two results prove the key is understood
+rather than ignored.
+
+Note the version gap: local validation runs Mihomo v1.19.29 while the router binary is v1.19.27, so
+key support can in principle differ between the machine that validates and the machine that runs.
+
 ## Safety Rules
 
 - Do not deploy to the router from this skill. Use the `router-deploy` skill for SCP, SSH, service restart, and router-side checks.
