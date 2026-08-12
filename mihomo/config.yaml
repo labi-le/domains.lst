@@ -1,7 +1,9 @@
 mode: rule
 allow-lan: true
 bind-address: "*"
-log-level: debug
+# debug is 96% per-connection TLS fingerprint and REALITY chatter, which drowns the
+# routing decisions in the 64 KiB ring buffer. info keeps every match RuleSet line.
+log-level: info
 ipv6: false
 tproxy-port: 12342
 
