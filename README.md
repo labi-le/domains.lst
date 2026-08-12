@@ -19,6 +19,15 @@ mkdir -p /etc/mihomo &&
 wget https://raw.githubusercontent.com/labi-le/domains.lst/main/mihomo/config.yaml -O /etc/mihomo/config.yaml
 ```
 
+#### disable the dnsmasq cache
+Required. A caching `dnsmasq` pins a real address for its upstream TTL, while a
+correct fake-IP answer carries TTL 1 — see `ARCHITECTURE.md`.
+```sh
+uci set dhcp.@dnsmasq[0].cachesize='0' &&
+uci commit dhcp &&
+service dnsmasq restart
+```
+
 #### pbr
 ```sh
 wget https://raw.githubusercontent.com/labi-le/domains.lst/main/pbr -O /etc/init.d/pbr &&
