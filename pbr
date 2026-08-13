@@ -25,6 +25,7 @@ start() {
 		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/porn.lst" \
 		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/anime.lst" \
 		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/news.lst" \
+		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/discord.lst" \
 		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/twitter.lst" \
 		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/meta.lst" \
 		"https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set_cis.txt"

@@ -34,6 +34,7 @@
 | `pbr` | WARP rule set | `https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/twitter.lst` | Twitter/X domains for WARP |
 | `pbr` | Telegram rule set | `https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/telegram.lst` | Telegram domains -> `telegram.txt`, pinned to `WARP-AWG0` (excluded from `warp.txt`) |
 | `pbr` | WARP rule set | `https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/meta.lst` | Meta domains for WARP |
+| `pbr` | WARP rule set | `https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/discord.lst` | Discord domains for WARP; the only source carrying `discord.media`, the voice endpoint, so voice UDP rides the same set |
 | `pbr` | WARP rule set | `https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set_cis.txt` | Local custom CIS domains for WARP |
 | `pbr` | Telegram IP set | `https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Subnets/IPv4/telegram.lst` | Telegram IPv4 ranges -> `telegram_ip.txt` + nft set `tproxy_ip4` |
 | `pbr` | Viber IP set | `https://raw.githubusercontent.com/routir/unblock/refs/heads/main/services/viber-ip-de.lst` | Viber IPv4 ranges -> `warp_ip.txt` + nft set `tproxy_ip4` |
