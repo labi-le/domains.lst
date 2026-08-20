@@ -10,4 +10,3 @@ g2a.com
 ifconfig.io
 mcp.context7.com
 duolingo.com
-fromsoftware-game.net
