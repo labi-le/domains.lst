@@ -21,6 +21,13 @@ proxies:
     udp: true
     interface-name: awg0
 
+  # Cloudflare WARP again, but reached through a Finland relay, so it survives failures that
+  # take out the direct endpoint on awg1.
+  - name: WARP-AWG2
+    type: direct
+    udp: true
+    interface-name: awg2
+
 dns:
   enable: true
   listen: 0.0.0.0:12344
@@ -60,10 +67,13 @@ proxy-groups:
     proxies:
       - WARP-AWG0
       - WARP-AWG1
-    url: "http://cp.cloudflare.com/generate_204"
+      - WARP-AWG2
+    # Cloudflare is the one destination WARP still reaches when its egress is broken, so a
+    # cp.cloudflare.com probe reports healthy while nothing else passes. Probe off-net.
+    url: "http://captive.apple.com/"
     interval: 900
     tolerance: 150
-    expected-status: 204
+    expected-status: 200
 
   - name: VPN-ALL-AUTO
     type: url-test
@@ -114,8 +124,8 @@ rule-providers:
 
 rules:
   - RULE-SET,vpn,VPN-ALL-AUTO
-  - RULE-SET,telegram,WARP-AWG0
-  - RULE-SET,telegram_ip,WARP-AWG0,no-resolve
+  - RULE-SET,telegram,WARP
+  - RULE-SET,telegram_ip,WARP,no-resolve
   - RULE-SET,warp,WARP
   - RULE-SET,warp_ip,WARP,no-resolve
   - MATCH,DIRECT
