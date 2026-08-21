@@ -5,3 +5,4 @@ cloudflare-ech.com
 dl.pstmn.io
 supporter-files.nexus-cdn.com
 ifconfig.me
+tapeop.dev
