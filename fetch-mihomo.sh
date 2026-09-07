@@ -44,7 +44,8 @@ BIN="${FILE%.gz}"
 
 if [ -n "$UPX_PROVIDER" ]; then
   chmod +x "$BIN"
-  $UPX_PROVIDER --lzma "$BIN" > /dev/null 2>&1
+  # a silent UPX failure ships a 46 MB binary at a router with a 37 MB overlay
+  $UPX_PROVIDER --lzma "$BIN" > /dev/null || die "UPX failed on $BIN"
 fi
 
 echo "${TMPDIR}/${BIN}"
