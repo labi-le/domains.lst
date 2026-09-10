@@ -4,7 +4,7 @@
 
 | repo path | router path | role | state |
 | --- | --- | --- | --- |
-| `mihomo/config.yaml` | `/etc/mihomo/config.yaml` | Main Mihomo static config (awg0=BY, awg1=WARP) | static |
+| `mihomo/config.yaml` | `/etc/mihomo/config.yaml` | Main Mihomo static config (awg0=BY, awg1=WARP RU, awg2=WARP FI) | static |
 | `mihomo/init.d` | `/etc/init.d/mihomo` | Procd service script for Mihomo | static |
 | `mihomo/config` | `/etc/config/mihomo` | UCI service settings for Mihomo | static |
 | `pbr` | `/etc/init.d/pbr` | Regenerates rule-provider files, mirrors them to `/etc/mihomo/rules`, writes `99-tproxy.nft`, populates nft set `tproxy_ip4`, then restarts Mihomo | static |
@@ -32,13 +32,13 @@
 | `pbr` | WARP rule set | `https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/anime.lst` | Anime domains for WARP |
 | `pbr` | WARP rule set | `https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/news.lst` | News domains for WARP |
 | `pbr` | WARP rule set | `https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/twitter.lst` | Twitter/X domains for WARP |
-| `pbr` | Telegram rule set | `https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/telegram.lst` | Telegram domains -> `telegram.txt`, pinned to `WARP-AWG0` (excluded from `warp.txt`) |
+| `pbr` | Telegram rule set | `https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/telegram.lst` | Telegram domains -> `telegram.txt`, routed to the `WARP` group (`awg0`, then `awg1`, then `DIRECT`; excluded from `warp.txt`) |
 | `pbr` | WARP rule set | `https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/meta.lst` | Meta domains for WARP |
 | `pbr` | WARP rule set | `https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/discord.lst` | Discord domains for WARP; the only source carrying `discord.media`, the voice endpoint, so voice UDP rides the same set |
 | `pbr` | WARP rule set | `https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set_cis.txt` | Local custom CIS domains for WARP |
 | `pbr` | Telegram IP set | `https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Subnets/IPv4/telegram.lst` | Telegram IPv4 ranges -> `telegram_ip.txt` + nft set `tproxy_ip4` |
 | `pbr` | Viber IP set | `https://raw.githubusercontent.com/routir/unblock/refs/heads/main/services/viber-ip-de.lst` | Viber IPv4 ranges -> `warp_ip.txt` + nft set `tproxy_ip4` |
-| `mihomo` | proxy-provider | `http://192.168.1.2:7008/stable.txt` | Pre-filtered raw URI list from sub-preprocessor for `VPN-ALL-AUTO` |
-| `mihomo` | URL test | `https://platform.claude.com/` | Probe URL for `VPN-ALL-AUTO` |
-| `mihomo` | fallback health | `http://cp.cloudflare.com/generate_204` | Probe URL for `WARP` (note: `awg1` passes this but cannot carry Telegram) |
+| `mihomo` | proxy-provider | `http://192.168.1.2:7008/stable.txt` | Pre-filtered raw URI list from sub-preprocessor for the inner `VPN-ALL-AUTO` url-test group |
+| `mihomo` | URL test | `https://platform.claude.com/` | Probe URL for the outer `VPN` fallback group (`VPN-ALL-AUTO`, then `WARP-AWG2`) and for the inner `VPN-ALL-AUTO` url-test group; the `vpn` rule set points at `VPN`, not at `VPN-ALL-AUTO` |
+| `mihomo` | fallback health | `http://captive.apple.com/` | Probe URL for `WARP` (`awg0`, then `awg1`, then `DIRECT`; probed with `lazy: false`, and the `DIRECT` rung passes it whenever the WAN is up, so the group is memberless only during a WAN outage) |
 | `mihomo` | provider health | `http://cp.cloudflare.com/generate_204` | Health-check URL for proxy-provider `stable` |

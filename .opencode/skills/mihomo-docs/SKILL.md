@@ -31,7 +31,7 @@ Use this skill for these topics:
 
 - Speak in the user's language.
 - Link local files when mentioning them, for example `mihomo/config.yaml`.
-- Prefer concrete examples using this repo's groups (`VPN-ALL-AUTO`, `WARP`), its `type: direct` proxies (`WARP-AWG0` on `awg0`, `WARP-AWG1` on `awg1`), and proxy-provider `stable`.
+- Prefer concrete examples using this repo's groups (`VPN` and `WARP`, both `fallback`, plus the `url-test` group `VPN-ALL-AUTO` that is `VPN`'s first rung), its `type: direct` proxies (`WARP-AWG0` on `awg0`, `WARP-AWG1` on `awg1`, `WARP-AWG2` on `awg2`), the built-in `DIRECT` that closes the `WARP` group, and proxy-provider `stable`.
 - If documentation and observed config could be interpreted differently, say so and identify what would need runtime verification.
 
 ## Boundaries

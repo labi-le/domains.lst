@@ -190,19 +190,31 @@ one means the `telegram` entry is missing from `dns.fake-ip-filter`. The raw DC 
 ### Log Checks
 
 ```sh
-ssh router 'logread | grep mihomo | grep -E "RuleSet\(vpn\)|RuleSet\(telegram\)|RuleSet\(telegram_ip\)|RuleSet\(warp\)|RuleSet\(warp_ip\)|using VPN-ALL-AUTO|using WARP-AWG0|using WARP\[|using DIRECT"'
+ssh router 'logread | grep mihomo | grep -E "RuleSet\(vpn\)|RuleSet\(telegram\)|RuleSet\(telegram_ip\)|RuleSet\(warp\)|RuleSet\(warp_ip\)|using VPN|using WARP|using DIRECT"'
 ```
 
 Expected current routing behavior:
 
-- `vpn` domains -> `VPN-ALL-AUTO`
-- `VPN-ALL-AUTO` selects the lowest-latency node across proxy-provider `stable`
-- no awg fallback: an empty provider yields `REJECT` via `empty-fallback`, so `vpn` domains fail
-  instead of leaking to the WAN
-- `warp` domains -> `WARP` (primary `WARP-AWG0`/`awg0`, fallback `WARP-AWG1`/`awg1`)
-- Telegram domains -> `WARP-AWG0` directly (pinned to `awg0`, no fallback)
-- Telegram raw DC IPs -> TPROXY via nft set `tproxy_ip4` -> `RULE-SET,telegram_ip,WARP-AWG0,no-resolve`
+- `vpn` domains -> `VPN`, a fallback group: `VPN-ALL-AUTO` first, then `WARP-AWG2`
+- `VPN-ALL-AUTO` still selects the lowest-latency node across proxy-provider `stable`
+- the killswitch is conditional: an empty provider makes `VPN-ALL-AUTO` resolve to `REJECT`,
+  whose health probe fails, so `VPN` falls through to `WARP-AWG2`; only when `awg2` is dead too
+  does `VPN` return its first member and reject the traffic instead of leaking it to the WAN
+- `warp` domains -> `WARP`, a fallback group: `WARP-AWG0`/`awg0` first, then `WARP-AWG1`/`awg1`,
+  then `DIRECT` — with both tunnels down the traffic goes straight out the WAN and meets the ISP
+  block itself (Discord answers `403` at once, Telegram DC connects just time out) instead of
+  hanging on a dead tunnel
+- Telegram domains -> `WARP`, the same group as the rest of the `warp` set; the old `awg0` pin was
+  dropped on 2026-08-20
+- Telegram raw DC IPs -> TPROXY via nft set `tproxy_ip4` -> `RULE-SET,telegram_ip,WARP,no-resolve`
 - Viber IPs -> TPROXY via `tproxy_ip4` -> `RULE-SET,warp_ip,WARP,no-resolve`
+
+Reading the `DIRECT` hits in that grep: a `warp`, `telegram` or `telegram_ip` match whose outbound
+is the `WARP` group's `DIRECT` rung is the expected last-rung outcome, not a fault — it means both
+tunnels failed their `captive.apple.com` probe, and the traffic is deliberately allowed to hit the
+ISP block instead of hanging. Chase the tunnels, not the routing. A `vpn` domain leaving over
+`DIRECT` is still a fault in every case: the `vpn` path ends in `REJECT` and must never egress raw.
+A plain `using DIRECT` on a domain in none of the rule sets is just `MATCH,DIRECT` doing its job.
 
 ## References
 

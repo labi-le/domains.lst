@@ -21,8 +21,8 @@ proxies:
     udp: true
     interface-name: awg0
 
-  # Cloudflare WARP again, but reached through a Finland relay, so it survives failures that
-  # take out the direct endpoint on awg1.
+  # Cloudflare WARP through a Finland relay: the only rung platform.claude.com answers 200
+  # for, against 403 over awg0 and awg1, so it backs the subscription not the WARP group.
   - name: WARP-AWG2
     type: direct
     udp: true
@@ -67,13 +67,36 @@ proxy-groups:
     proxies:
       - WARP-AWG0
       - WARP-AWG1
-      - WARP-AWG2
+      # Last rung: with both tunnels dead the traffic meets the ISP block itself instead of
+      # hanging on a tunnel that carries nothing.
+      - DIRECT
     # Cloudflare is the one destination WARP still reaches when its egress is broken, so a
     # cp.cloudflare.com probe reports healthy while nothing else passes. Probe off-net.
     url: "http://captive.apple.com/"
-    interval: 900
-    tolerance: 150
+    interval: 300
+    # A frozen verdict here egresses raw, and the default `lazy: true` stops re-probing one
+    # interval after the last dial, so a startup probe taken before awg0/awg1 handshake
+    # would pin the DIRECT rung until traffic arrives to unstick it.
+    lazy: false
+    # awg0 answers this probe in 5.9-7.3s, once not at all inside 10s, while carrying
+    # Telegram at 0.07s, so anything near the implicit 5000ms retires the healthier rung.
+    # Fallback ignores `tolerance`, and `max-failed-times` never fires for direct members.
+    timeout: 12000
     expected-status: 200
+
+  - name: VPN
+    type: fallback
+    proxies:
+      - VPN-ALL-AUTO
+      - WARP-AWG2
+    url: "https://platform.claude.com/"
+    interval: 60
+    # Rung 1 is only demoted by a probe, and `lazy` would skip probes while `vpn` is idle,
+    # leaving a stale verdict no traffic can correct.
+    lazy: false
+    # "Subscription failed" here means no node answers 2xx/3xx from one vendor, so an
+    # Anthropic-side block on the provider's ranges moves every vpn domain onto awg2.
+    expected-status: 200-399
 
   - name: VPN-ALL-AUTO
     type: url-test
@@ -86,9 +109,9 @@ proxy-groups:
     lazy: false
     expected-status: 200-399
     max-failed-times: 1
-    # Subscription-only by design: no awg fallback, so an empty `stable` provider must not
-    # degrade to COMPATIBLE, a plain direct outbound with no interface bind, which would
-    # egress vpn domains straight to the WAN. REJECT makes that case a killswitch.
+    # An empty `stable` provider must not degrade to COMPATIBLE, a plain direct outbound with
+    # no interface bind, which would egress vpn domains straight to the WAN. REJECT keeps the
+    # killswitch for the case where WARP-AWG2 is dead too.
     empty-fallback: REJECT
 
 rule-providers:
@@ -123,7 +146,7 @@ rule-providers:
     format: text
 
 rules:
-  - RULE-SET,vpn,VPN-ALL-AUTO
+  - RULE-SET,vpn,VPN
   - RULE-SET,telegram,WARP
   - RULE-SET,telegram_ip,WARP,no-resolve
   - RULE-SET,warp,WARP
