@@ -61,6 +61,20 @@ service external-dns enable &&
 service external-dns start
 ```
 
+#### zapret exclusions
+The 80/443 `nfqws` profile desyncs everything it is not told to skip, so a CDN that
+breaks under desync needs its name here. `duolingo.cn` is on the list for exactly that
+reason: without it the audio CDN answers nothing.
+```sh
+wget https://raw.githubusercontent.com/labi-le/domains.lst/main/zapret-hosts-user-exclude.txt -O /opt/zapret/ipset/zapret-hosts-user-exclude.txt &&
+/etc/init.d/zapret restart
+```
+Verify a name is skipped rather than desynced — `403` is the CDN answering, `000` is the
+desync killing the handshake.
+```sh
+curl -s -o /dev/null -m 8 -w '%{http_code}\n' https://tts-static.duolingo.cn/
+```
+
 #### weekly refresh
 `service pbr enable` only schedules `pbr` at boot — the crontab entry is a separate
 step, easy to forget.

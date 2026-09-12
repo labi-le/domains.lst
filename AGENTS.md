@@ -10,6 +10,7 @@ This repository manages OpenWrt router networking files, primarily Mihomo config
 - `pbr` -> router `/etc/init.d/pbr`
 - `shell.nix` -> local dev shell for validation, config deploy helpers, and router Mihomo binary fetching
 - `fetch-mihomo.sh` -> downloads latest upstream Mihomo binary for the router architecture and optionally compresses it with UPX
+- `zapret-hosts-user-exclude.txt` -> router `/opt/zapret/ipset/zapret-hosts-user-exclude.txt`
 - `MIHOMO_INSTALL.md` -> install, validation, deploy, and verification workflow
 - `REFERENCE_MAP.md` -> repo-to-router mapping and external source URLs
 - `ARCHITECTURE.md` -> DNS, fake-IP, TPROXY, and routing design

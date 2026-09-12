@@ -10,6 +10,7 @@
 | `pbr` | `/etc/init.d/pbr` | Regenerates rule-provider files, mirrors them to `/etc/mihomo/rules`, writes `99-tproxy.nft`, populates nft set `tproxy_ip4`, then restarts Mihomo | static |
 | `external-dns` | `/etc/init.d/external-dns` | Updates external router DNS record in UCI/dnsmasq | static |
 | `youtube-ipv6-block` | `/etc/init.d/youtube-ipv6-block` | IPv6 blocking helper for YouTube | static |
+| `zapret-hosts-user-exclude.txt` | `/opt/zapret/ipset/zapret-hosts-user-exclude.txt` | Hosts the `nfqws` 80/443 catch-all profile must leave untouched; a name here gets no DPI desync at all | static |
 | `(not tracked)` | `/tmp/mihomo/cache.db` | Mihomo mutable cache database | runtime |
 | `(not tracked)` | `/tmp/mihomo/rules/vpn.txt` | Generated VPN rule-provider file | runtime |
 | `(not tracked)` | `/tmp/mihomo/rules/warp.txt` | Generated WARP rule-provider file | runtime |
