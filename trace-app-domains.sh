@@ -9,7 +9,14 @@ set -euo pipefail
 ROOT_PIDS=()
 DURATION=120
 INTERVAL=0.3
-FAKEIP_PREFIX="198.18.1."
+# The range must be the one the router hands out, so it is read rather than assumed; the repo
+# copy is the source of that file, and MIHOMO_CONF overrides it when running elsewhere.
+MIHOMO_CONF=${MIHOMO_CONF:-"$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")/mihomo/config.yaml"}
+FAKEIP_SUBNET=$(sed -n 's/^[[:space:]]*fake-ip-range:[[:space:]]*\([0-9./]*\).*/\1/p' "$MIHOMO_CONF" 2> /dev/null | head -1 || true)
+[ -n "$FAKEIP_SUBNET" ] || {
+	echo "no fake-ip-range in $MIHOMO_CONF; set MIHOMO_CONF to mihomo's config" >&2
+	exit 1
+}
 WORKDIR=$(mktemp -d)
 trap 'rm -rf "$WORKDIR"' EXIT
 
@@ -94,7 +101,7 @@ if [ "$(id -u)" -ne 0 ]; then
 	echo "packet capture needs root, re-executing under sudo" >&2
 	args=()
 	for pid in "${PIDS[@]}"; do args+=(-P "$pid"); done
-	exec sudo -- "$0" "${args[@]}" -d "$DURATION" -i "$INTERVAL"
+	exec sudo MIHOMO_CONF="$MIHOMO_CONF" -- "$0" "${args[@]}" -d "$DURATION" -i "$INTERVAL"
 fi
 
 # Descendants, not just the roots: a Proton game is one pid, its wineserver another, and Steam
@@ -175,7 +182,16 @@ kill "$tshark_pid" 2> /dev/null || true
 wait "$tshark_pid" 2> /dev/null || true
 
 echo >&2
-awk -F'\t' -v fakeip="$FAKEIP_PREFIX" '
+awk -F'\t' -v fakeip="$FAKEIP_SUBNET" '
+	function n2i(s, o) { if (split(s, o, ".") != 4) return -1; return ((o[1] * 16777216) + (o[2] * 65536) + (o[3] * 256) + o[4]) }
+	function in_fakeip(a, v) { v = n2i(a); return (v >= fake_lo && v <= fake_hi) }
+	BEGIN {
+		split(fakeip, p, "/")
+		bits = (p[2] == "" ? 32 : p[2] + 0)
+		size = 2 ^ (32 - bits)
+		fake_lo = int(n2i(p[1]) / size) * size
+		fake_hi = fake_lo + size - 1
+	}
 	NR == FNR {
 		if ($1 == "" || $2 == "") next
 		split($2, ips, ",")
@@ -184,7 +200,7 @@ awk -F'\t' -v fakeip="$FAKEIP_PREFIX" '
 	}
 	{
 		if (seen[$0]++) next
-		if (index($2, fakeip) == 1) {
+		if (in_fakeip($2)) {
 			proxied[($2 in name ? name[$2] : "?") "\t" $2 "\t" $4] = 1
 		} else if ($2 in name) {
 			direct[name[$2] "\t" $2 ":" $3 "\t" $4] = 1
@@ -198,7 +214,7 @@ awk -F'\t' -v fakeip="$FAKEIP_PREFIX" '
 		for (d in direct) { split(d, f, "\t"); printf "%-45s %-22s %s\n", f[1], f[2], f[3]; n++ }
 		if (!n) print "(none)"
 		print ""
-		print "=== already inside mihomo (fake-ip " fakeip "0/24), a rule already matches ==="
+		print "=== already inside mihomo (fake-ip " fakeip "), a rule already matches ==="
 		n = 0
 		for (d in proxied) { split(d, f, "\t"); printf "%-45s %-22s %s\n", f[1], f[2], f[3]; n++ }
 		if (!n) print "(none)"

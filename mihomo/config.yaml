@@ -33,7 +33,7 @@ dns:
   listen: 0.0.0.0:12344
   ipv6: false
   enhanced-mode: fake-ip
-  fake-ip-range: 198.18.1.0/24
+  fake-ip-range: 198.18.0.0/16
   store-fake-ip: true
   fake-ip-filter-mode: rule
   fake-ip-filter:
