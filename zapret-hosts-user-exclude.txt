@@ -429,6 +429,8 @@ azureedge.net
 demonware.net
 callofduty.com
 activision.com
+# load-bearing: skipping the catch-all is what lets dp_find reach the trailing
+# --hostlist-domains=d1vq87e9lcf771.cloudfront.net,... profile that actually works
 cloudfront.net
 #################################### Amazon
 amazon.dev

@@ -53,6 +53,13 @@ gzip -dc "/tmp/mihomo-${VER}.gz" > "/tmp/mihomo-${VER}"
 upx --best --lzma "/tmp/mihomo-${VER}"
 ```
 
+`fetch-mihomo.sh` does the same three steps with the integrity check the manual `curl` above
+lacks: it verifies the downloaded `.gz` against the `sha256` digest the GitHub release API
+publishes for that asset and, on mismatch, deletes the download, prints both hashes and exits
+non-zero before `gunzip`. A release that carries no digest fails closed unless
+`MIHOMO_SKIP_DIGEST=1` is set. UPX runs after verification, so the compressed binary derives
+from verified bytes. It needs `sha256sum` alongside `curl`, `jq` and `gunzip`.
+
 Copy to the router from the workstation:
 
 ```sh
@@ -160,6 +167,25 @@ effect only on the next `fw4 reload` or boot. Set *elements* are inlined into th
 also applied live by `pbr`, so an existing install survives a reload untouched; a first install,
 or any edit to the rule text itself, needs the reload above.
 
+`pbr` reads `fake-ip-range` out of `/etc/mihomo/config.yaml` at start, so `/etc/mihomo/config.yaml`
+must be installed before the first `pbr start`; with the key absent `pbr` logs and exits 1 rather
+than guessing a subnet. Changing the range takes edits in **two** places, not one: `fake-ip-range`
+in `config.yaml`, followed by `pbr start` and `fw4 reload`, and separately the `lo` address in UCI
+`network.loopback.ipaddr`, which is not derived from `fake-ip-range` and is not tracked in this
+repository. The range is now `198.18.0.0/16`, so `lo` must carry a prefix covering it:
+
+```sh
+ssh router "uci -q delete network.loopback.ipaddr; uci add_list network.loopback.ipaddr='127.0.0.1'; uci add_list network.loopback.ipaddr='198.18.1.1/16'; uci commit network; service network reload"
+```
+
+`pbr` checks this at every start and warns when no `lo` prefix covers the configured range
+(`WARNING: no address on lo covers 198.18.0.0/16`, with the `uci` command above in the message).
+It only warns; it never edits the network config. Skipping the step is not cosmetic: with `lo` at
+`198.18.1.1/24`, `ip route get 198.18.0.5` on the router answers
+`via 93.100.194.1 dev wan`, so router-originated traffic to a fake IP outside the old `/24` leaves
+out the raw WAN. LAN clients are unaffected, since their packets reach mihomo through the fwmark
+lookup.
+
 ## Verification
 
 ### Router-Side Checks
@@ -183,7 +209,7 @@ curl -sS -o /dev/null -w '%{http_code}\n' https://web.telegram.org/
 curl -sS -k -o /dev/null -w '%{http_code}\n' https://149.154.167.99/
 ```
 
-`web.telegram.org` must resolve to a `198.18.1.x` fake IP, not a real `104.18.x` address: a real
+`web.telegram.org` must resolve to a `198.18.x.x` fake IP, not a real `104.18.x` address: a real
 one means the `telegram` entry is missing from `dns.fake-ip-filter`. The raw DC IP exercises the
 `tproxy_ip4` -> `RULE-SET,telegram_ip` path that native Telegram apps use.
 
@@ -192,6 +218,20 @@ one means the `telegram` entry is missing from `dns.fake-ip-filter`. The raw DC 
 ```sh
 ssh router 'logread | grep mihomo | grep -E "RuleSet\(vpn\)|RuleSet\(telegram\)|RuleSet\(telegram_ip\)|RuleSet\(warp\)|RuleSet\(warp_ip\)|using VPN|using WARP|using DIRECT"'
 ```
+
+`pbr`'s own warnings go to syslog through `logger -t pbr` as well as stderr, which is what makes
+the weekly cron run auditable — a failed fetch or a rejected list is visible after the fact:
+
+```sh
+ssh router 'logread -e pbr'
+```
+
+A run that logs a refused list left the previous rule files in place on purpose. Each source is
+judged on its own: a source whose body is non-empty but yields zero valid entries — a captive
+portal's HTML `200`, which `curl -sSLf` accepts — counts as failed exactly like one that failed
+all five retries, and one failed source blocks the whole list from being installed. A rejected
+CIDR is narrower: `nft rejected element <cidr>` means that element was dropped, while the rest of
+`tproxy_ip4` was still filled.
 
 Expected current routing behavior:
 

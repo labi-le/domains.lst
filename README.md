@@ -36,6 +36,31 @@ service pbr enable &&
 service pbr start
 ```
 
+`pbr` takes the fake-IP subnet from `fake-ip-range` in `/etc/mihomo/config.yaml`, so install the
+static config first; without that key it logs and exits 1 instead of writing TPROXY rules for a
+guessed subnet. The subnet is `198.18.0.0/16`, which `lo` must carry — a separate UCI setting that
+no file here derives or enforces:
+```sh
+uci -q delete network.loopback.ipaddr &&
+uci add_list network.loopback.ipaddr='127.0.0.1' &&
+uci add_list network.loopback.ipaddr='198.18.1.1/16' &&
+uci commit network &&
+service network reload
+```
+`pbr` warns at every start when no `lo` prefix covers the configured range; it does not change the
+network config itself. Measured with `lo` left at `198.18.1.1/24`: `ip route get 198.18.0.5` on the
+router answers `via 93.100.194.1 dev wan`, so the router's own traffic to fake IPs outside the old
+`/24` leaves via the raw WAN. LAN clients still work, because they reach mihomo through the fwmark
+lookup.
+
+Its warnings go to syslog as well as stderr, so the weekly cron run is auditable:
+```sh
+logread -e pbr
+```
+A source that answers with a non-empty body yielding zero valid entries — a captive portal's HTML
+`200` — counts as a failed source like one that never answered, and one failed source means that
+list is not installed at all; the previous file stays.
+
 #### runtime layout
 ```text
 /etc/mihomo/config.yaml  -> static config
@@ -43,14 +68,6 @@ service pbr start
 /tmp/mihomo/rules/*      -> generated rule providers
 /etc/mihomo/rules/*      -> persisted copy, seeded back into /tmp at boot
 /tmp/mihomo/providers/*  -> downloaded proxy providers
-```
-
-#### block ipv6 youtube
-```sh
-wget https://raw.githubusercontent.com/labi-le/domains.lst/main/youtube-ipv6-block -O /etc/init.d/youtube-ipv6-block &&
-chmod +x /etc/init.d/youtube-ipv6-block &&
-service youtube-ipv6-block enable &&
-service youtube-ipv6-block start
 ```
 
 #### external-dns
