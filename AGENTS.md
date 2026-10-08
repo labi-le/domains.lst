@@ -68,6 +68,22 @@ nix-shell --run 'mihomo-deploy-config router:/etc/mihomo/config.yaml'
 nix-shell --run 'mihomo-fetch-router linux-arm64 /tmp'
 ```
 
+### `wg-config-apply`
+
+Use when an AmneziaWG or WARP client `.conf` (from AmneziaWG, AyuGram Desktop, or a WARP provider) must become router state on an `awg*` interface: converting it to OpenWrt UCI with `wg2uci.sh`, or applying it to the router with `apply-wg.sh`.
+
+Expected workflow:
+
+1. Convert first, without touching the router: `./wg2uci.sh <conf> <iface>`, and read the fragment.
+2. Apply: `./apply-wg.sh <conf> [iface] [host]`.
+3. Verify `awg show <iface>` reports a recent handshake and the router default route is unchanged.
+
+Safety rules:
+
+- The `.conf` parser lives only in `wg2uci.sh`; never re-implement it.
+- `DNS = ...` from the config is dropped on purpose, and `defaultroute` stays `0` so `AllowedIPs = 0.0.0.0/0` cannot hijack the router's default route.
+- Confirm the exact apply action first: this replaces live tunnel state on a router carrying the LAN.
+
 ## Current Routing Intent
 
 - `RULE-SET,vpn` routes to `VPN`, a `fallback` group of two rungs: `VPN-ALL-AUTO`, the `url-test` group over proxy-provider `stable`, then `WARP-AWG2` (`awg2`, Cloudflare WARP through a Finland relay).
