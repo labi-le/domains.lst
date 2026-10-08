@@ -13,6 +13,8 @@ This repository manages OpenWrt router networking files, primarily Mihomo config
 - `shell.nix` -> local dev shell for validation, config deploy helpers, and router Mihomo binary fetching
 - `trace-app-domains.sh` -> workstation tool, never installed on the router: `tshark` + `ss` capture that names which hosts a process tree talks to, for deciding what belongs in a rule list. It reads the fake-IP range from `mihomo/config.yaml` (`MIHOMO_CONF` overrides) instead of hardcoding a prefix, so it classifies the whole configured CIDR as already-proxied
 - `fetch-mihomo.sh` -> downloads the latest upstream Mihomo binary for the router architecture, verifies it against the release API's `sha256` digest, and optionally compresses it with UPX
+- `wg2uci.sh` -> converts an AmneziaWG client `.conf` into an OpenWrt UCI fragment
+- `apply-wg.sh` -> applies an AmneziaWG client `.conf` to an awg interface on the router over SSH, reusing `wg2uci.sh` as the parser
 - `zapret-hosts-user-exclude.txt` -> router `/opt/zapret/ipset/zapret-hosts-user-exclude.txt`
 - `MIHOMO_INSTALL.md` -> install, validation, deploy, and verification workflow
 - `REFERENCE_MAP.md` -> repo-to-router mapping and external source URLs
