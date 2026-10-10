@@ -8,6 +8,24 @@
 #   answer a split ClientHello with a TLS alert or plaintext instead of a
 #   handshake, so desync has to skip them.
 #
+# + stepfun.ai
+#   Already shipped in the router's list at line 2; kept here so a list update
+#   that drops it is repaired.
+#
+# + Alipay group, measured 2026-10-10 from a client behind the router.
+#   With desync applied these answered with a TLS protocol error
+#   (UNSOLICITED_EXTENSION, INVALID_SESSION_ID) or a reset; with the name
+#   excluded they handshake. antgroup.com on the same address 110.75.130.45 was
+#   the control that handshook while its neighbours did not. Several now fail
+#   only certificate verification, which is the hostname not being covered by
+#   the leaf - the handshake itself completes.
+#
+#   Tried and dropped, because they time out with desync applied AND with the
+#   name excluded, so an entry buys nothing either way: alipay.net, alipay.hk,
+#   alipay-eco.com, myalicdn.com, ialicdn.com, alibaba.com, alibaba-inc.com,
+#   ifaa.org.cn, sinopayment.com.cn. Those need the routing lever (the foreign
+#   VPN list), not this one.
+#
 # - cloudfront.net
 #   The Duolingo web app's audio CDNs (d1vq87e9lcf771, d2pur3iezf4d1j,
 #   d1btvuu4dwu627) need the bypass the ISP SNI filter denies them, so the
@@ -16,29 +34,16 @@
 #   --hostlist-domains profile names those three hosts; that profile is not in
 #   /etc/config/zapret any more, so the catch-all is what carries them now.
 
-# + stepfun.ai
-#   Already shipped in the router's list at line 2; kept here so a list update
-#   that drops it is repaired.
-#
-# + Alipay group, added 2026-10-10 for a measurement
-#   Most of these answered a split ClientHello with a TLS protocol error
-#   (UNSOLICITED_EXTENSION, INVALID_SESSION_ID) or reset while antgroup.com on
-#   the same address 110.75.130.45 handshook fine. Names that did not recover
-#   with desync off are pruned back out - see dpi-bypass.md.
-
 +duolingo.com
 +duolingo.cn
 +stepfun.ai
 +alipay.com
 +alipay.cn
 +alipay.com.cn
-+alipay.net
-+alipay.hk
 +alipayobjects.com
 +alipayplus.com
 +alipaydev.com
 +alipay-inc.com
-+alipay-eco.com
 +alipay-corp.com
 +alipay-traffic.com
 +alipaydesign.com
@@ -46,10 +51,4 @@
 +alipayeshop.com
 +alipaylog.com
 +alipaymo.com
-+ifaa.org.cn
-+sinopayment.com.cn
-+myalicdn.com
-+ialicdn.com
-+alibaba.com
-+alibaba-inc.com
 -cloudfront.net
