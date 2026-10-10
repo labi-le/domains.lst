@@ -126,29 +126,31 @@ router until reboot.
 ## The script that keeps it applied
 
 The list lives here: `zapret-hosts-user-exclude.txt` maps to
-`/opt/zapret/ipset/zapret-hosts-user-exclude.txt` per `AGENTS.md`. Three files:
+`/opt/zapret/ipset/zapret-hosts-user-exclude.txt` per `AGENTS.md`. The script is
+`zapret-exclude-ensure.sh`, installed as `/opt/zapret/exclude-ensure.sh` and
+run by hand. It downloads its entries from this repository over HTTPS —
 
-- `zapret-hosts-user-exclude.txt` — the list itself. The repo copy had drifted
-  by 84 lines, including the per-app sections maintained on the router, so it
-  was replaced with the live file rather than hand-patched; the two now carry
-  the same md5.
-- `zapret-exclude-ensure.lst` — the entries the script asserts, one per line
-  with a `+`/`-` prefix: `+duolingo.com`, `+duolingo.cn`, `-cloudfront.net`.
-- `zapret-exclude-ensure.sh` — installed as `/opt/zapret/exclude-ensure.sh`.
-  Idempotent "ensure", not an append: it adds the `+` names and comments out an
-  active `-` name, then restarts zapret only if something changed, so a quiet
-  cron run costs no bypass outage. It exits 1 when either file is missing, so a
-  botched install shows up in the log instead of passing silently.
+`https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/zapret-exclude-ensure.lst`
+(`REPO_URL` overrides) — so the repo is the only place an entry is edited and
+nothing has to be copied to the router. `zapret-exclude-ensure.lst` holds one
+entry per line, `+name` to keep, `-name` to comment out an active line:
+`+duolingo.com`, `+duolingo.cn`, `+stepfun.ai`, `-cloudfront.net`.
 
-Cron runs it every five minutes, so a LuCI save is repaired within one interval
-without anyone noticing, and its path is in `/etc/sysupgrade.conf`. Note that
-the rest of `/opt/zapret` is **not** backed up, so a firmware upgrade still
-loses zapret itself and its shipped lists; only the script survives, and it
-will then re-apply the entries to whatever fresh list appears.
+The script is idempotent: it appends only what is missing, comments out only
+what reasserts wrongly, and restarts zapret only when it actually changed
+something. A failed download is fatal and the exclude list is left untouched —
+an ensure that ran on an empty list would delete the entries it exists to
+protect. It retries three times, then exits 1 with the URL in the message.
 
-Verified by reproducing the clobber: with `duolingo.cn` deleted and
-`cloudfront.net` reactivated, all three hosts failed TLS; after one run of the
-script they handshaked again, and a second run was silent. The router's own
+There is no cron entry. The router applies a change when the script is run:
+
+```sh
+ssh router '/opt/zapret/exclude-ensure.sh'
+```
+
+Verified twice against a real clobber: with `duolingo.cn`, `stepfun.ai` deleted
+and `cloudfront.net` reactivated, all three hosts failed TLS; after one run of
+the script they handshaked again, and a second run was silent. The router's own
 `openssl s_client` is not a usable probe for this — measure from a client
 behind the router instead.
 
