@@ -28,10 +28,24 @@ openssl s_client -connect <ip>:443 -servername <host> </dev/null
 
 - Hangs only for one SNI, from every address: ISP SNI filter. The name should
   **not** be excluded — it needs the bypass.
-- Instant alert or plaintext reply, for every SNI including `example.com`: not a
-  filter, a server that desync breaks. The name should be excluded.
+- Instant alert, plaintext reply, or a TLS **protocol** error such as
+  `UNSOLICITED_EXTENSION`, `INVALID_SESSION_ID` or a connection reset, for every
+  SNI including `example.com`: not a filter, a server that desync breaks. The
+  name should be excluded.
 - Alternating between addresses across repeated probes: edge flakiness, not a
   config defect. No list entry fixes it.
+- Timeout **in both states** — with desync applied and with the name excluded:
+  the entry buys nothing at all, because the address is unreachable rather than
+  mangled. Drop it and use the routing lever (the foreign VPN list) instead;
+  keeping it in the exclude list only denies the name the bypass if the filter
+  ever becomes the cause.
+
+Re-probe after the entry lands, and probe more than once: on these paths a
+single result in either direction is noise. `CERTIFICATE_VERIFY_FAILED` after
+the change is a **success** — the handshake completed and only the leaf does not
+cover the probed hostname.
+
+The Alipay measurement in `dpi-bypass.md` is the worked example of all four.
 
 ## Edit the entry
 
