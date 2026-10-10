@@ -1,0 +1,21 @@
+# Entries the ensure script asserts in zapret's exclude list, one per line.
+#   +name  keep present and active
+#   -name  keep out of the way: an active line gets commented out
+# Lines starting with # and blank lines are ignored.
+#
+# + duolingo.com, duolingo.cn
+#   Alibaba-hosted endpoints (tts-static.duolingo.cn, simg-ssl.duolingo.cn)
+#   answer a split ClientHello with a TLS alert or plaintext instead of a
+#   handshake, so desync has to skip them.
+#
+# - cloudfront.net
+#   The Duolingo web app's audio CDNs (d1vq87e9lcf771, d2pur3iezf4d1j,
+#   d1btvuu4dwu627) need the bypass the ISP SNI filter denies them, so the
+#   catch-all that would shield them stays inactive. An older repo copy of the
+#   exclude list claims this line is load-bearing because a trailing
+#   --hostlist-domains profile names those three hosts; that profile is not in
+#   /etc/config/zapret any more, so the catch-all is what carries them now.
+
++duolingo.com
++duolingo.cn
+-cloudfront.net

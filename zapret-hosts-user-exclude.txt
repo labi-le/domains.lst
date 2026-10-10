@@ -30,6 +30,7 @@ boosty.to
 ottai.com
 ufanet.tv
 apple.com
+gudsen.vip
 whatbox.ca
 trovo.live
 beeline.tv
@@ -40,6 +41,8 @@ yandex.com
 yandex.org
 yandex.net
 chatglm.cn
+gudsen.vip
+pantum.com
 gstatic.com
 lichess.org
 premier.one
@@ -49,6 +52,9 @@ dropbox.com
 genesis.com
 carcade.com
 midnight.im
+easy4ip.com
+senkuro.com
+ibyteimg.com
 duolingo.com
 map-care.com
 gravatar.com
@@ -58,17 +64,28 @@ ipstream.one
 godville.net
 voidboost.cc
 hcaptcha.com
+mchose.com.cn
 voidboost.one
 kaspersky.com
 canonical.com
 mediafire.com
+huggingface.co
+mozaracing.com
 vivoglobal.com
+dolynkcloud.com
+libreoffice.org
+payguide.online
+easy4ipcloud.com
 feralhosting.com
 moondroplab.tech
+dahuasecurity.com
 rockstargames.com
 docs.altlinux.org
 battleye.b-cdn.net
 download.nvidia.com
+tiktoklinksafety.com
+documentfoundation.org
+marketplace.visualstudio.com
 supporter-files.nexus-cdn.com
 #################################### VK
 vk.cc
@@ -374,18 +391,52 @@ msocdn.com
 mojang.com
 windows.net
 msftauth.net
-xboxlive.com
 onedrive.com
 microsoft.com
 office365.com
 sharepoint.com
 skypeassets.com
-xboxservices.com
+s-microsoft.com
 windowsupdate.com
 microsoft-tst.com
 microsoftonline.com
 microsoftonline-p.com
 minecraftservices.com
+#################################### Xbox
+xbx.lv
+xbox.co
+xbox.eu
+xbox.org
+xboxab.com
+xbox360.co
+xbox360.eu
+xboxone.co
+xboxone.eu
+xboxnow.com
+xboxera.com
+xbox360.com
+xbox360.org
+xboxlive.cn
+xboxone.com
+gamepass.com
+xboxlive.com
+minecraft.net
+xboxevents.com
+orithegame.com
+xboxrewards.com
+xboxstudios.com
+xboxservices.com
+xboxliveauth.com
+msauthimages.net
+xboxgamepass.com
+tellmewhygame.com
+msftauthimages.net
+xboxusercontent.com
+msftconnecttest.com
+xboxgamestudios.com
+xboxplayanywhere.com
+renovacionxboxlive.com
+microsoftcasualgames.com
 #################################### Arknights: Endfield
 skport.com
 hg-cdn.com
@@ -429,9 +480,7 @@ azureedge.net
 demonware.net
 callofduty.com
 activision.com
-# load-bearing: skipping the catch-all is what lets dp_find reach the trailing
-# --hostlist-domains=d1vq87e9lcf771.cloudfront.net,... profile that actually works
-cloudfront.net
+#cloudfront.net
 #################################### Amazon
 amazon.dev
 amazon.com
@@ -536,5 +585,40 @@ dreametech.com
 dreamehome.com
 dreame-technology.cn
 dreame-technology.com
+#################################### Arena Breakout Infinite
+li.com
+netease.com
+tencent.com
+igamecj.com
+gcloudcs.com
+intlgame.com
+proximabeta.com
+levelinfinite.com
+arenabreakout.com
+arenabreakoutinfinite.com
+#################################### Aniimo
+funplus.com
+guardease.com
+kingsgroupgames.com
+#################################### tp-link
+tp-link.com
+tplinkra.com
+tplinkap.net
+tplinknbu.com
+tplinkdns.com
+tplinkwifi.net
+tplinkcloud.com
+tplinklogin.net
+tplinkrepeater.net
+#################################### Nintendo
+nintendo.com
+nintendo.net
+nintendo.co.jp
+nintendo.com.au
+nintendo.com.uk
+nintendo.com.hk
+nintendo.com.tw
+nintendo.com.cn
+nintendo-europe.com
 ####################################
 duolingo.cn
