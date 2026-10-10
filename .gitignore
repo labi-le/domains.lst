@@ -38,3 +38,7 @@ benchmarks
 
 .omo/
 .omp/
+
+# WarpScout artifacts; the account file holds WARP private keys
+warpscout-account.json
+warpscout-report-*.txt
