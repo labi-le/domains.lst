@@ -161,6 +161,54 @@ explicitly. That profile is not in `/etc/config/zapret` any more — the only
 what carries those three hosts now. If that trailing profile is restored, the
 `-cloudfront.net` entry should be dropped and the catch-all left alone.
 
+## Alipay, measured 2026-10-10
+
+The app was failing and the domains were unknown, so the classification above
+was run over the AliPay set from `blackmatrix7/ios_rule_script` and the
+Alibaba-family lists in `v2fly/domain-list-community`. Probing from a client
+behind the router separated two different faults that look identical in an app.
+
+With desync applied, most of the family answered with a TLS protocol error —
+`UNSOLICITED_EXTENSION`, `INVALID_SESSION_ID`, or a reset — rather than a
+handshake. That is the "desync applied to a server that cannot take it"
+signature, so the names went into the exclude list. Re-probed with the name
+excluded:
+
+| Name | desync applied | name excluded |
+|---|---|---|
+| `alipay.com` | `UNSOLICITED_EXTENSION` | handshake ok (timeouts are intermittent) |
+| `alipay.com.cn` | `UNSOLICITED_EXTENSION` | handshake ok |
+| `alipay.cn` | `ConnectionResetError` | handshake ok |
+| `alipayplus.com` | `UNSOLICITED_EXTENSION` | handshake ok |
+| `alipayobjects.com` | `UNSOLICITED_EXTENSION` | handshake completes, cert mismatch |
+| `alipaydev.com` | `UNSOLICITED_EXTENSION` | handshake completes, cert mismatch |
+| `alipay-inc.com` | `UNSOLICITED_EXTENSION` | handshake completes, cert mismatch |
+| `antgroup.com` | `UNSOLICITED_EXTENSION` | handshake ok |
+| `antfin.com` | `UNSOLICITED_EXTENSION` | handshake completes, cert mismatch |
+| `antgroup-inc.cn` | `UNSOLICITED_EXTENSION` | handshake ok |
+| `alipay.net`, `alipay.hk`, `alipay-eco.com` | timeout | timeout |
+| `myalicdn.com`, `ialicdn.com`, `alibaba.com` | timeout | timeout |
+| `alibaba-inc.com`, `ifaa.org.cn`, `sinopayment.com.cn` | timeout | timeout |
+
+Two lessons worth keeping:
+
+- **A cert mismatch is a success here.** `CERTIFICATE_VERIFY_FAILED` means the
+  handshake completed and only the leaf does not cover the probed hostname; the
+  failure being chased is the protocol error, not naming.
+- **One probe is not evidence.** `antgroup.com` handshook once while its
+  neighbours on the same address `110.75.130.45` failed, so it was left
+  unexcluded as a control; every later probe returned
+  `UNSOLICITED_EXTENSION`, and excluding it fixed it. A single result — in
+  either direction — is noise on these paths.
+
+The second fault is reachability, and exclusion does not touch it: the names in
+the last two rows time out **with and without** the exclusion, so no entry buys
+anything and they were dropped back out of the list. Their addresses are in
+China and the path to them is intermittent in both states; the lever for them is
+routing (the foreign VPN list), not zapret. The same intermittent timeout shows
+up on names that handshake, which is why the table says so rather than claiming
+a clean win.
+
 ## Still broken, same mechanism
 
 `aws.amazon.com` times out in TLS exactly like the audio CDNs did. It matches
