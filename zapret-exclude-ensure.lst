@@ -26,6 +26,11 @@
 #   ifaa.org.cn, sinopayment.com.cn. Those need the routing lever (the foreign
 #   VPN list), not this one.
 #
+# + antgroup.com, antfin.com, antgroup-inc.cn
+#   Ant Group's own domains, the parent of Alipay. All three answered with
+#   UNSOLICITED_EXTENSION on every probe while not excluded, the same signature
+#   as the group above.
+#
 # - cloudfront.net
 #   The Duolingo web app's audio CDNs (d1vq87e9lcf771, d2pur3iezf4d1j,
 #   d1btvuu4dwu627) need the bypass the ISP SNI filter denies them, so the
@@ -51,4 +56,7 @@
 +alipayeshop.com
 +alipaylog.com
 +alipaymo.com
++antgroup.com
++antfin.com
++antgroup-inc.cn
 -cloudfront.net
