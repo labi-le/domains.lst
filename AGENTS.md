@@ -71,6 +71,14 @@ nix-shell --run 'mihomo-deploy-config router:/etc/mihomo/config.yaml'
 nix-shell --run 'mihomo-fetch-router linux-arm64 /tmp'
 ```
 
+### `zapret-exclude`
+
+Use when a domain must be excluded from zapret's DPI desync, or when a client reports that a site is reachable while one class of its content silently fails. Covers editing `zapret-exclude-ensure.lst`, deciding between `+name` and `-name`, applying it on the router, and classifying the failure first, since a wrong entry is silent in either direction.
+
+### `pbr-custom-list`
+
+Use when adding or removing a domain in `custom-set.txt` or `custom-set_cis.txt` — that is, choosing whether a domain leaves via the foreign VPN set or the WARP set. Covers the mandatory push to GitHub before the router can read it, applying with `/etc/init.d/pbr start`, and verifying the entry in `/tmp/mihomo/rules/`.
+
 ### `wg-config-apply`
 
 Use when an AmneziaWG or WARP client `.conf` (from AmneziaWG, AyuGram Desktop, or a WARP provider) must become router state on an `awg*` interface: converting it to OpenWrt UCI with `wg2uci.sh`, or applying it to the router with `apply-wg.sh`.
