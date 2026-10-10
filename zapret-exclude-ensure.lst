@@ -16,7 +16,40 @@
 #   --hostlist-domains profile names those three hosts; that profile is not in
 #   /etc/config/zapret any more, so the catch-all is what carries them now.
 
+# + stepfun.ai
+#   Already shipped in the router's list at line 2; kept here so a list update
+#   that drops it is repaired.
+#
+# + Alipay group, added 2026-10-10 for a measurement
+#   Most of these answered a split ClientHello with a TLS protocol error
+#   (UNSOLICITED_EXTENSION, INVALID_SESSION_ID) or reset while antgroup.com on
+#   the same address 110.75.130.45 handshook fine. Names that did not recover
+#   with desync off are pruned back out - see dpi-bypass.md.
+
 +duolingo.com
 +duolingo.cn
 +stepfun.ai
++alipay.com
++alipay.cn
++alipay.com.cn
++alipay.net
++alipay.hk
++alipayobjects.com
++alipayplus.com
++alipaydev.com
++alipay-inc.com
++alipay-eco.com
++alipay-corp.com
++alipay-traffic.com
++alipaydesign.com
++alipaydns.com
++alipayeshop.com
++alipaylog.com
++alipaymo.com
++ifaa.org.cn
++sinopayment.com.cn
++myalicdn.com
++ialicdn.com
++alibaba.com
++alibaba-inc.com
 -cloudfront.net
