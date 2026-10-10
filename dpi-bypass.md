@@ -128,10 +128,9 @@ router until reboot.
 The list lives here: `zapret-hosts-user-exclude.txt` maps to
 `/opt/zapret/ipset/zapret-hosts-user-exclude.txt` per `AGENTS.md`. The script is
 `zapret-exclude-ensure.sh`, installed as `/opt/zapret/exclude-ensure.sh` and
-run by hand. It downloads its entries from this repository over HTTPS —
-
-`https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/zapret-exclude-ensure.lst`
-(`REPO_URL` overrides) — so the repo is the only place an entry is edited and
+run by hand. It downloads its entries from this repository over HTTPS, from
+`raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/zapret-exclude-ensure.lst`
+(`REPO_URL` overrides), so the repo is the only place an entry is edited and
 nothing has to be copied to the router. `zapret-exclude-ensure.lst` holds one
 entry per line, `+name` to keep, `-name` to comment out an active line:
 `+duolingo.com`, `+duolingo.cn`, `+stepfun.ai`, `-cloudfront.net`.
