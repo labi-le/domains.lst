@@ -67,16 +67,13 @@ proxy-groups:
     proxies:
       - WARP-AWG0
       - WARP-AWG1
-      # Last rung: with both tunnels dead the traffic meets the ISP block itself instead of
-      # hanging on a tunnel that carries nothing.
-      - DIRECT
+      - VPN
     # Cloudflare is the one destination WARP still reaches when its egress is broken, so a
     # cp.cloudflare.com probe reports healthy while nothing else passes. Probe off-net.
     url: "http://captive.apple.com/"
     interval: 300
-    # A frozen verdict here egresses raw, and the default `lazy: true` stops re-probing one
-    # interval after the last dial, so a startup probe taken before awg0/awg1 handshake
-    # would pin the DIRECT rung until traffic arrives to unstick it.
+    # The default `lazy: true` stops re-probing one interval after the last dial, so a
+    # startup probe taken before awg0/awg1 handshake would freeze a stale verdict.
     lazy: false
     # awg0 answers this probe in 5.9-7.3s, once not at all inside 10s, while carrying
     # Telegram at 0.07s, so anything near the implicit 5000ms retires the healthier rung.

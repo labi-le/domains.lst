@@ -44,20 +44,9 @@ Current intended WARP flow:
 1. `RULE-SET,warp`, `RULE-SET,warp_ip`, `RULE-SET,telegram`, and `RULE-SET,telegram_ip` all route
    to `WARP`.
 2. `WARP` is a `fallback` over `WARP-AWG0` (`awg0`, Belarus), `WARP-AWG1` (`awg1`, Cloudflare
-   WARP), then `DIRECT`.
-3. `DIRECT` is a deliberate last rung: with both tunnels dead, Telegram and Discord meet the ISP
-   block itself instead of hanging on a tunnel that carries nothing. Measured 2026-09-10 from the
-   router's WAN, that block surfaces immediately for Discord - `162.159.128.233:443` answers `403`
-   in 0.008 s - and as a timeout for Telegram, whose DC addresses `149.154.167.99:443` and
-   `91.108.56.130:443` never complete a TCP connect at all (silent drop). Telegram gets no
-   refusal, only silence.
-4. `DIRECT` passes the group probe while the WAN is up: the raw WAN answers `captive.apple.com` in
-   0.03 s (measured 2026-09-10), so any tunnel failure leaves the group a live member. With the WAN
-   itself down the `DIRECT` probe fails alongside the tunnels, `findAliveProxy` finds nothing alive
-   and the group returns `proxies[0]` = `WARP-AWG0` — so a `using WARP[WARP-AWG0]` line during a
-   WAN outage is the every-member-dead case, not a healthy awg0.
-5. This is a deliberate loosening of the old killswitch stance, and only for the `warp` set. The
-   `vpn` path is untouched and still ends in `REJECT`.
+   WARP), then `VPN`. `DIRECT` is deliberately omitted so `WARP` acts as a killswitch: if all
+   rungs are dead, `findAliveProxy` returns `proxies[0]` = `WARP-AWG0` and traffic never leaks
+   to the raw WAN.
 6. `WARP` probes `http://captive.apple.com/` rather than `cp.cloudflare.com`: Cloudflare is the one
    destination WARP still reaches when its egress is broken, so a Cloudflare probe reports a rung
    healthy while nothing else passes. Probing off-net is what lets the Telegram rules target the
@@ -87,10 +76,10 @@ When reviewing or editing config, check all of these:
 - Health checks have intentional `url`, `interval`, `timeout`, `lazy`, `expected-status`, and `max-failed-times` values.
 - A proxy-group `timeout` defaults to 5000 ms, so an explicit `timeout: 5000` is inert; only a value that differs from 5000 changes behaviour.
 - `url-test` `tolerance` is intentional: lower values switch more eagerly; higher values are stickier. On `fallback` groups it is inert - `FallbackOption` never decodes it - so a `tolerance` on `WARP` or `VPN` would do nothing.
-- `max-failed-times` cannot demote a `direct` member: `GroupBase.onDialFailed` discards dial failures from `direct` proxies, so `WARP-AWG0`, `WARP-AWG1`, `WARP-AWG2`, and `DIRECT` are demoted only by a failed probe.
+- `max-failed-times` cannot demote a `direct` member: `GroupBase.onDialFailed` discards dial failures from `direct` proxies, so `WARP-AWG0`, `WARP-AWG1`, and `WARP-AWG2` are demoted only by a failed probe.
 - The `VPN` group keeps `url: https://platform.claude.com/`, `interval: 60`, `lazy: false`, `expected-status: 200-399`, and its rung order `VPN-ALL-AUTO` before `WARP-AWG2`.
 - `RULE-SET,vpn` targets the `VPN` group, and no rule targets `VPN-ALL-AUTO` directly. A rule pointed back at `VPN-ALL-AUTO` validates cleanly and silently disables the `awg2` fallback, since the outer group is then never consulted.
-- `WARP` keeps its rung order `WARP-AWG0`, `WARP-AWG1`, `DIRECT`, its `http://captive.apple.com/` probe, `lazy: false`, and a `timeout` well above awg0's measured 5.9-7.3 s probe latency.
+- `WARP` keeps its rung order `WARP-AWG0`, `WARP-AWG1`, `VPN`, its `http://captive.apple.com/` probe, `lazy: false`, and a `timeout` well above awg0's measured 5.9-7.3 s probe latency.
 - `.lan` and `.local` names stay `real-ip` in `fake-ip-filter`.
 - `MATCH,DIRECT` remains the final fallback rule unless the user explicitly asks otherwise.
 - Telegram rules still route to `WARP`, still precede the `warp` rules, and `telegram` is still listed in `dns.fake-ip-filter`.
