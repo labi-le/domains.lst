@@ -152,7 +152,7 @@ rule-providers:
 rules:
   - RULE-SET,vpn,VPN
   - RULE-SET,telegram,WARP
-  - RULE-SET,telegram_ip,WARP,no-resolve
+  - RULE-SET,telegram_ip,VPN,no-resolve
   - RULE-SET,warp,WARP
   - RULE-SET,warp_ip,WARP,no-resolve
   - MATCH,DIRECT
