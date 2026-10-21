@@ -33,6 +33,7 @@
 | --- | --- | --- | --- |
 | `pbr` | VPN rule set | `https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/geoblock.lst` | Base geoblock VPN domains |
 | `pbr` | VPN rule set | `https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/google_ai.lst` | AI service VPN domains |
+| `pbr` | VPN rule set | `https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/tiktok.lst` | TikTok domains for the VPN rule set |
 | `pbr` | VPN rule set | `https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set.txt` | Local custom VPN domains |
 | `pbr` | WARP rule set | `https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/block.lst` | Base blocked domains for WARP |
 | `pbr` | WARP rule set | `https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/porn.lst` | Porn domains for WARP |

@@ -33,6 +33,7 @@ start() {
 	_process_rule_set "vpn" \
 		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/geoblock.lst" \
 		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/google_ai.lst" \
+		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/tiktok.lst" \
 		"https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set.txt"
 	_process_rule_set "telegram" \
 		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/telegram.lst"
