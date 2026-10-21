@@ -12,3 +12,4 @@ mcp.context7.com
 wiki.malw.link
 xiaomimimo.com
 opencode.ai
+api.telegram.org
