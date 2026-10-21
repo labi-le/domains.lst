@@ -39,8 +39,7 @@ dns:
   fake-ip-filter:
     - DOMAIN-SUFFIX,lan,real-ip
     - DOMAIN-SUFFIX,local,real-ip
-    - DOMAIN,vt.tiktok.com,real-ip
-    - DOMAIN,vm.tiktok.com,real-ip
+    - RULE-SET,realip,real-ip
     - RULE-SET,vpn,fake-ip
     - RULE-SET,telegram,fake-ip
     - RULE-SET,warp,fake-ip
@@ -114,6 +113,12 @@ proxy-groups:
     empty-fallback: REJECT
 
 rule-providers:
+  realip:
+    type: file
+    path: ./rules/realip.txt
+    behavior: domain
+    format: text
+
   vpn:
     type: file
     path: ./rules/vpn.txt

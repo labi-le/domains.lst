@@ -29,7 +29,9 @@ start() {
 	# mihomo tolerates a missing rule file, but that provider then matches nothing and silently
 	# sends its traffic to MATCH,DIRECT.
 	touch /tmp/mihomo/rules/vpn.txt /tmp/mihomo/rules/warp.txt /tmp/mihomo/rules/telegram.txt \
-		"$TELEGRAM_IP_FILE" "$WARP_IP_FILE"
+		/tmp/mihomo/rules/realip.txt "$TELEGRAM_IP_FILE" "$WARP_IP_FILE"
+	_process_rule_set "realip" \
+		"https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/realip.txt"
 	_process_rule_set "vpn" \
 		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/geoblock.lst" \
 		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/google_ai.lst" \
