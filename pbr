@@ -14,59 +14,58 @@ PERSIST_DIR="/etc/mihomo/rules"
 
 # The weekly cron entry discards stderr, so a stderr-only warning is in practice silent.
 _log() {
-	logger -t pbr "$*"
-	echo "$*" >&2
+  logger -t pbr "$*"
+  echo "$*" >&2
 }
 
 start() {
-	FAKEIP_SUBNET=$(sed -n 's/^[[:space:]]*fake-ip-range:[[:space:]]*\([0-9./]*\).*/\1/p' "$MIHOMO_CONF" | head -1)
-	if [ -z "$FAKEIP_SUBNET" ]; then
-		_log "ERROR: no fake-ip-range in $MIHOMO_CONF, refusing to write TPROXY rules for a guessed subnet"
-		exit 1
-	fi
-	_check_lo_covers_fakeip
-	mkdir -p /tmp/mihomo/rules
-	# mihomo tolerates a missing rule file, but that provider then matches nothing and silently
-	# sends its traffic to MATCH,DIRECT.
-	touch /tmp/mihomo/rules/vpn.txt /tmp/mihomo/rules/warp.txt /tmp/mihomo/rules/telegram.txt \
-		/tmp/mihomo/rules/realip.txt "$TELEGRAM_IP_FILE" "$WARP_IP_FILE"
-	_process_rule_set "realip" \
-		"https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/realip.txt"
-	_process_rule_set "vpn" \
-		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/geoblock.lst" \
-		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/google_ai.lst" \
-		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/tiktok.lst" \
-		"https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set.txt"
-	_process_rule_set "telegram" \
-		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/telegram.lst"
-	_process_rule_set "warp" \
-		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/block.lst" \
-		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/porn.lst" \
-		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/anime.lst" \
-		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/news.lst" \
-		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/discord.lst" \
-		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/twitter.lst" \
-		"https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/meta.lst" \
-		"https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set_cis.txt"
-	nft add set inet fw4 "$TPROXY_IP_SET" '{ type ipv4_addr; flags interval; }' 2> /dev/null || true
-	rm -f "$TELEGRAM_IP_FILE.tmp.fail" "$WARP_IP_FILE.tmp.fail"
-	: > "$TELEGRAM_IP_FILE.tmp"
-	: > "$WARP_IP_FILE.tmp"
-	_fetch_ip_list "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Subnets/IPv4/telegram.lst" "$TELEGRAM_IP_FILE.tmp"
-	_fetch_ip_list "https://raw.githubusercontent.com/routir/unblock/refs/heads/main/services/viber-ip-de.lst" "$WARP_IP_FILE.tmp"
-	_install_ip_file "$TELEGRAM_IP_FILE"
-	_install_ip_file "$WARP_IP_FILE"
-	_write_tproxy_rules
-	_populate_tproxy_set
-	_log "Restarting mihomo..."
-	/etc/init.d/mihomo restart
-	exit 0
+  FAKEIP_SUBNET=$(sed -n 's/^[[:space:]]*fake-ip-range:[[:space:]]*\([0-9./]*\).*/\1/p' "$MIHOMO_CONF" | head -1)
+  if [ -z "$FAKEIP_SUBNET" ]; then
+    _log "ERROR: no fake-ip-range in $MIHOMO_CONF, refusing to write TPROXY rules for a guessed subnet"
+    exit 1
+  fi
+  _check_lo_covers_fakeip
+  mkdir -p /tmp/mihomo/rules
+  # mihomo tolerates a missing rule file, but that provider then matches nothing and silently
+  # sends its traffic to MATCH,DIRECT.
+  touch /tmp/mihomo/rules/vpn.txt /tmp/mihomo/rules/warp.txt /tmp/mihomo/rules/telegram.txt \
+    /tmp/mihomo/rules/realip.txt "$TELEGRAM_IP_FILE" "$WARP_IP_FILE"
+  _process_rule_set "realip" \
+    "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/realip.txt"
+  _process_rule_set "vpn" \
+    "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/geoblock.lst" \
+    "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/google_ai.lst" \
+    "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/tiktok.lst" \
+    "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set.txt"
+  _process_rule_set "telegram" \
+    "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/telegram.lst"
+  _process_rule_set "warp" \
+    "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/block.lst" \
+    "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/porn.lst" \
+    "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/anime.lst" \
+    "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Categories/news.lst" \
+    "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/twitter.lst" \
+    "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Services/meta.lst" \
+    "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set_cis.txt"
+  nft add set inet fw4 "$TPROXY_IP_SET" '{ type ipv4_addr; flags interval; }' 2> /dev/null || true
+  rm -f "$TELEGRAM_IP_FILE.tmp.fail" "$WARP_IP_FILE.tmp.fail"
+  : > "$TELEGRAM_IP_FILE.tmp"
+  : > "$WARP_IP_FILE.tmp"
+  _fetch_ip_list "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Subnets/IPv4/telegram.lst" "$TELEGRAM_IP_FILE.tmp"
+  _fetch_ip_list "https://raw.githubusercontent.com/routir/unblock/refs/heads/main/services/viber-ip-de.lst" "$WARP_IP_FILE.tmp"
+  _install_ip_file "$TELEGRAM_IP_FILE"
+  _install_ip_file "$WARP_IP_FILE"
+  _write_tproxy_rules
+  _populate_tproxy_set
+  _log "Restarting mihomo..."
+  /etc/init.d/mihomo restart
+  exit 0
 }
 
 # Router-originated traffic to a fake IP no `lo` prefix covers leaves via the WAN. The address
 # lives in UCI only, so warn; an init script must not rewrite the network config.
 _check_lo_covers_fakeip() {
-	if ip -4 -o addr show dev lo 2> /dev/null | awk -v net="$FAKEIP_SUBNET" '
+  if ip -4 -o addr show dev lo 2> /dev/null | awk -v net="$FAKEIP_SUBNET" '
 		function n2i(s) { split(s, o, "."); return ((o[1] * 16777216) + (o[2] * 65536) + (o[3] * 256) + o[4]) }
 		function base(a, m) { return int(a / (2 ^ (32 - m))) }
 		BEGIN { split(net, p, "/"); want = n2i(p[1]); wl = (p[2] == "" ? 32 : p[2] + 0) }
@@ -80,10 +79,10 @@ _check_lo_covers_fakeip() {
 		}
 		END { exit(ok ? 0 : 1) }
 	'; then
-		return 0
-	fi
-	local addr
-	addr=$(awk -v net="$FAKEIP_SUBNET" '
+    return 0
+  fi
+  local addr
+  addr=$(awk -v net="$FAKEIP_SUBNET" '
 		function n2i(s) { split(s, o, "."); return ((o[1] * 16777216) + (o[2] * 65536) + (o[3] * 256) + o[4]) }
 		BEGIN {
 			split(net, p, "/")
@@ -91,74 +90,74 @@ _check_lo_covers_fakeip() {
 			a = int(n2i(p[1]) / (2 ^ (32 - l))) * (2 ^ (32 - l)) + 257
 			printf "%d.%d.%d.%d/%d", int(a / 16777216) % 256, int(a / 65536) % 256, int(a / 256) % 256, a % 256, l
 		}' < /dev/null)
-	_log "WARNING: no address on lo covers $FAKEIP_SUBNET, router-originated traffic to fake IPs outside the configured lo prefix leaves via the raw WAN; fix with: uci -q delete network.loopback.ipaddr; uci add_list network.loopback.ipaddr='127.0.0.1'; uci add_list network.loopback.ipaddr='$addr'; uci commit network; service network reload"
+  _log "WARNING: no address on lo covers $FAKEIP_SUBNET, router-originated traffic to fake IPs outside the configured lo prefix leaves via the raw WAN; fix with: uci -q delete network.loopback.ipaddr; uci add_list network.loopback.ipaddr='127.0.0.1'; uci add_list network.loopback.ipaddr='$addr'; uci commit network; service network reload"
 }
 
 _existing_elements() {
-	sed -n 's/^[[:space:]]*elements = {[[:space:]]*\(.*[^[:space:]]\)[[:space:]]*}[[:space:]]*$/\1/p' "$TPROXY_NFT_FILE" 2> /dev/null | head -1
+  sed -n 's/^[[:space:]]*elements = {[[:space:]]*\(.*[^[:space:]]\)[[:space:]]*}[[:space:]]*$/\1/p' "$TPROXY_NFT_FILE" 2> /dev/null | head -1
 }
 
 # Elements are inlined so a bare `fw4 reload` restores them without rerunning pbr. The file is
 # included into `table inet fw4`, so one overlapping CIDR would break the whole ruleset at boot:
 # validate before installing. This nft build rejects `auto-merge`.
 _write_tproxy_rules() {
-	mkdir -p "$(dirname "$TPROXY_NFT_FILE")"
-	local elements
-	elements=$(_tproxy_elements)
-	# This file is the only copy that survives a cold boot, so a run with no data must not empty
-	# it. Re-render rather than return: FAKEIP_SUBNET comes from the mihomo config, so the
-	# installed file may carry a stale subnet even when its elements are still good.
-	if [ -z "$elements" ]; then
-		elements=$(_existing_elements)
-		[ -n "$elements" ] && _log "WARNING: no IP data this run, reusing the elements already in $TPROXY_NFT_FILE"
-	fi
-	_render_tproxy_rules "$elements" > "$TPROXY_NFT_FILE.tmp"
-	if ! _nft_file_valid "$TPROXY_NFT_FILE.tmp"; then
-		# Dropping every element because one CIDR overlaps loses the whole persisted set, so
-		# keep the ones nft accepts and name the ones it does not.
-		_log "WARNING: inline elements rejected by nft, excluding the offending ones"
-		elements=$(_accepted_elements "$elements")
-		if [ -z "$elements" ]; then
-			elements=$(_existing_elements)
-			[ -n "$elements" ] && _log "WARNING: no element accepted by nft, reusing the elements already in $TPROXY_NFT_FILE"
-		fi
-		_render_tproxy_rules "$elements" > "$TPROXY_NFT_FILE.tmp"
-		if ! _nft_file_valid "$TPROXY_NFT_FILE.tmp"; then
-			rm -f "$TPROXY_NFT_FILE.tmp"
-			_log "ERROR: generated nft rules invalid, keeping existing $TPROXY_NFT_FILE"
-			return
-		fi
-	fi
-	mv "$TPROXY_NFT_FILE.tmp" "$TPROXY_NFT_FILE"
-	_log "Wrote $TPROXY_NFT_FILE for fake-IP subnet $FAKEIP_SUBNET"
+  mkdir -p "$(dirname "$TPROXY_NFT_FILE")"
+  local elements
+  elements=$(_tproxy_elements)
+  # This file is the only copy that survives a cold boot, so a run with no data must not empty
+  # it. Re-render rather than return: FAKEIP_SUBNET comes from the mihomo config, so the
+  # installed file may carry a stale subnet even when its elements are still good.
+  if [ -z "$elements" ]; then
+    elements=$(_existing_elements)
+    [ -n "$elements" ] && _log "WARNING: no IP data this run, reusing the elements already in $TPROXY_NFT_FILE"
+  fi
+  _render_tproxy_rules "$elements" > "$TPROXY_NFT_FILE.tmp"
+  if ! _nft_file_valid "$TPROXY_NFT_FILE.tmp"; then
+    # Dropping every element because one CIDR overlaps loses the whole persisted set, so
+    # keep the ones nft accepts and name the ones it does not.
+    _log "WARNING: inline elements rejected by nft, excluding the offending ones"
+    elements=$(_accepted_elements "$elements")
+    if [ -z "$elements" ]; then
+      elements=$(_existing_elements)
+      [ -n "$elements" ] && _log "WARNING: no element accepted by nft, reusing the elements already in $TPROXY_NFT_FILE"
+    fi
+    _render_tproxy_rules "$elements" > "$TPROXY_NFT_FILE.tmp"
+    if ! _nft_file_valid "$TPROXY_NFT_FILE.tmp"; then
+      rm -f "$TPROXY_NFT_FILE.tmp"
+      _log "ERROR: generated nft rules invalid, keeping existing $TPROXY_NFT_FILE"
+      return
+    fi
+  fi
+  mv "$TPROXY_NFT_FILE.tmp" "$TPROXY_NFT_FILE"
+  _log "Wrote $TPROXY_NFT_FILE for fake-IP subnet $FAKEIP_SUBNET"
 }
 
 # Cumulative, because `flags interval` rejects a pair: an element is only known bad relative to
 # the ones already accepted.
 _accepted_elements() {
-	local accepted=""
-	local probe="$TPROXY_NFT_FILE.el"
-	local cand try
-	for cand in $1; do
-		cand=${cand%,}
-		[ -n "$cand" ] || continue
-		if [ -n "$accepted" ]; then try="$accepted, $cand"; else try="$cand"; fi
-		_render_tproxy_rules "$try" > "$probe"
-		if _nft_file_valid "$probe"; then
-			accepted="$try"
-		else
-			_log "WARNING: nft rejected element $cand, excluded from $TPROXY_NFT_FILE"
-		fi
-	done
-	rm -f "$probe"
-	printf '%s' "$accepted"
+  local accepted=""
+  local probe="$TPROXY_NFT_FILE.el"
+  local cand try
+  for cand in $1; do
+    cand=${cand%,}
+    [ -n "$cand" ] || continue
+    if [ -n "$accepted" ]; then try="$accepted, $cand"; else try="$cand"; fi
+    _render_tproxy_rules "$try" > "$probe"
+    if _nft_file_valid "$probe"; then
+      accepted="$try"
+    else
+      _log "WARNING: nft rejected element $cand, excluded from $TPROXY_NFT_FILE"
+    fi
+  done
+  rm -f "$probe"
+  printf '%s' "$accepted"
 }
 
 _render_tproxy_rules() {
-	local elements="$1"
-	local elements_line=""
-	[ -n "$elements" ] && elements_line="	elements = { $elements }"
-	cat << EOF
+  local elements="$1"
+  local elements_line=""
+  [ -n "$elements" ] && elements_line="	elements = { $elements }"
+  cat << EOF
 set $TPROXY_IP_SET {
 	type ipv4_addr
 	flags interval
@@ -178,163 +177,163 @@ EOF
 }
 
 _nft_file_valid() {
-	local file="$1"
-	local rc
-	{
-		echo "table inet pbrcheck {"
-		cat "$file"
-		echo "}"
-	} > "$file.check"
-	nft -c -f "$file.check" 2> /dev/null
-	rc=$?
-	rm -f "$file.check"
-	return "$rc"
+  local file="$1"
+  local rc
+  {
+    echo "table inet pbrcheck {"
+    cat "$file"
+    echo "}"
+  } > "$file.check"
+  nft -c -f "$file.check" 2> /dev/null
+  rc=$?
+  rm -f "$file.check"
+  return "$rc"
 }
 
 # A captive portal answers 200 with an HTML body, which passes `curl -f`. Accept only lines that
 # actually look like domains so junk cannot be installed and then persisted.
 _domain_filter() {
-	tr -d '\r' | awk 'NF>0 && !/^#/{print $1}' |
-		tr 'A-Z' 'a-z' | sed -e 's#^[+][.]##' -e 's#^[.]*##' |
-		awk '/^[a-z0-9_*]([a-z0-9_*-]*\.)+[a-z]{2,}$/'
+  tr -d '\r' | awk 'NF>0 && !/^#/{print $1}' \
+    | tr 'A-Z' 'a-z' | sed -e 's#^[+][.]##' -e 's#^[.]*##' \
+    | awk '/^[a-z0-9_*]([a-z0-9_*-]*\.)+[a-z]{2,}$/'
 }
 
 _process_rule_set() {
-	local list_name="$1"
-	shift
-	local failed=0
-	local output="/tmp/mihomo/rules/${list_name}.txt"
-	local accum="$output.raw"
-	_log "Processing $list_name rule_set..."
-	: > "$accum"
-	for url in "$@"; do
-		local data=""
-		for i in $(seq 1 5); do
-			data=$(curl --connect-timeout 5 --max-time 15 -sSLf "$url") && break
-			_log "  - Retry $i/5: $url"
-			sleep 3
-		done
-		if [ -z "$data" ]; then
-			# A list missing one of N sources is indistinguishable from a shrunken upstream,
-			# so it must not be installed at all.
-			_log "ERROR: $list_name: source $url failed, keeping existing list"
-			failed=1
-			continue
-		fi
-		# Filtered per source, not over the concatenation: a captive-portal body is non-empty
-		# but yields nothing, and over the concatenation the other sources hide that.
-		local kept
-		kept=$(printf '%s\n' "$data" | _domain_filter | tee -a "$accum" | wc -l)
-		if [ "${kept:-0}" -eq 0 ]; then
-			_log "ERROR: $list_name: source $url produced no valid entries, keeping existing list"
-			failed=1
-			continue
-		fi
-		_log "  - $kept entries from $url"
-	done
-	sort -u "$accum" | sed 's/^/+./' > "$output.tmp"
-	rm -f "$accum"
-	if [ "$failed" -eq 0 ] && [ -s "$output.tmp" ]; then
-		mv "$output.tmp" "$output"
-		_persist_rule "$output"
-		_log "Wrote $(wc -l < "$output") entries to $output"
-	else
-		rm -f "$output.tmp"
-		_log "WARNING: no usable data fetched for $list_name, keeping existing $output"
-	fi
+  local list_name="$1"
+  shift
+  local failed=0
+  local output="/tmp/mihomo/rules/${list_name}.txt"
+  local accum="$output.raw"
+  _log "Processing $list_name rule_set..."
+  : > "$accum"
+  for url in "$@"; do
+    local data=""
+    for i in $(seq 1 5); do
+      data=$(curl --connect-timeout 5 --max-time 15 -sSLf "$url") && break
+      _log "  - Retry $i/5: $url"
+      sleep 3
+    done
+    if [ -z "$data" ]; then
+      # A list missing one of N sources is indistinguishable from a shrunken upstream,
+      # so it must not be installed at all.
+      _log "ERROR: $list_name: source $url failed, keeping existing list"
+      failed=1
+      continue
+    fi
+    # Filtered per source, not over the concatenation: a captive-portal body is non-empty
+    # but yields nothing, and over the concatenation the other sources hide that.
+    local kept
+    kept=$(printf '%s\n' "$data" | _domain_filter | tee -a "$accum" | wc -l)
+    if [ "${kept:-0}" -eq 0 ]; then
+      _log "ERROR: $list_name: source $url produced no valid entries, keeping existing list"
+      failed=1
+      continue
+    fi
+    _log "  - $kept entries from $url"
+  done
+  sort -u "$accum" | sed 's/^/+./' > "$output.tmp"
+  rm -f "$accum"
+  if [ "$failed" -eq 0 ] && [ -s "$output.tmp" ]; then
+    mv "$output.tmp" "$output"
+    _persist_rule "$output"
+    _log "Wrote $(wc -l < "$output") entries to $output"
+  else
+    rm -f "$output.tmp"
+    _log "WARNING: no usable data fetched for $list_name, keeping existing $output"
+  fi
 }
 
 # /tmp/mihomo/rules is tmpfs. Without this copy a reboot leaves every rule-provider empty and
 # mihomo sends those domains to MATCH,DIRECT until this script has refetched everything; the
 # mihomo init script seeds the workdir back from here on boot.
 _persist_rule() {
-	local file="$1"
-	mkdir -p "$PERSIST_DIR"
-	# mihomo/init.d seeds anything non-empty from here as authoritative, so a half-written file
-	# would become the cold-boot copy.
-	if cp "$file" "$PERSIST_DIR/${file##*/}.tmp"; then
-		mv "$PERSIST_DIR/${file##*/}.tmp" "$PERSIST_DIR/${file##*/}"
-	else
-		rm -f "$PERSIST_DIR/${file##*/}.tmp"
-		_log "  - WARNING: could not persist $file"
-	fi
+  local file="$1"
+  mkdir -p "$PERSIST_DIR"
+  # mihomo/init.d seeds anything non-empty from here as authoritative, so a half-written file
+  # would become the cold-boot copy.
+  if cp "$file" "$PERSIST_DIR/${file##*/}.tmp"; then
+    mv "$PERSIST_DIR/${file##*/}.tmp" "$PERSIST_DIR/${file##*/}"
+  else
+    rm -f "$PERSIST_DIR/${file##*/}.tmp"
+    _log "  - WARNING: could not persist $file"
+  fi
 }
 
 _fetch_ip_list() {
-	local url="$1"
-	local target="$2"
-	_log "Fetching IP list $url..."
-	local data=""
-	for i in $(seq 1 5); do
-		data=$(curl --connect-timeout 5 --max-time 15 -sSLf "$url") && break
-		sleep 3
-	done
-	if [ -z "$data" ]; then
-		_log "  - WARNING: fetch failed for $url"
-		: > "$target.fail"
-		return
-	fi
-	# A non-empty body that yields no address is a failed source, not an upstream that shrank.
-	local kept
-	kept=$(printf '%s\n' "$data" | tr -d '\r' | awk 'NF>0 && !/^#/{print $1}' |
-		awk '/^([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,2})?$/' | tee -a "$target" | wc -l)
-	if [ "${kept:-0}" -eq 0 ]; then
-		_log "  - ERROR: source $url produced no valid entries, keeping existing list"
-		: > "$target.fail"
-		return
-	fi
-	_log "  - $kept addresses from $url"
+  local url="$1"
+  local target="$2"
+  _log "Fetching IP list $url..."
+  local data=""
+  for i in $(seq 1 5); do
+    data=$(curl --connect-timeout 5 --max-time 15 -sSLf "$url") && break
+    sleep 3
+  done
+  if [ -z "$data" ]; then
+    _log "  - WARNING: fetch failed for $url"
+    : > "$target.fail"
+    return
+  fi
+  # A non-empty body that yields no address is a failed source, not an upstream that shrank.
+  local kept
+  kept=$(printf '%s\n' "$data" | tr -d '\r' | awk 'NF>0 && !/^#/{print $1}' \
+    | awk '/^([0-9]{1,3}\.){3}[0-9]{1,3}(\/[0-9]{1,2})?$/' | tee -a "$target" | wc -l)
+  if [ "${kept:-0}" -eq 0 ]; then
+    _log "  - ERROR: source $url produced no valid entries, keeping existing list"
+    : > "$target.fail"
+    return
+  fi
+  _log "  - $kept addresses from $url"
 }
 
 _install_ip_file() {
-	local file="$1"
-	if [ -s "$file.tmp" ] && [ ! -e "$file.tmp.fail" ]; then
-		mv "$file.tmp" "$file"
-		_persist_rule "$file"
-		_log "Wrote $(wc -l < "$file") entries to $file"
-	else
-		rm -f "$file.tmp"
-		_log "WARNING: no usable data fetched, keeping existing $file"
-	fi
-	rm -f "$file.tmp.fail"
+  local file="$1"
+  if [ -s "$file.tmp" ] && [ ! -e "$file.tmp.fail" ]; then
+    mv "$file.tmp" "$file"
+    _persist_rule "$file"
+    _log "Wrote $(wc -l < "$file") entries to $file"
+  else
+    rm -f "$file.tmp"
+    _log "WARNING: no usable data fetched, keeping existing $file"
+  fi
+  rm -f "$file.tmp.fail"
 }
 
 _tproxy_elements() {
-	cat "$TELEGRAM_IP_FILE" "$WARP_IP_FILE" 2> /dev/null |
-		awk 'NF>0{print $1}' | sort -u | awk '{printf "%s, ",$1}' | sed 's/, $//'
+  cat "$TELEGRAM_IP_FILE" "$WARP_IP_FILE" 2> /dev/null \
+    | awk 'NF>0{print $1}' | sort -u | awk '{printf "%s, ",$1}' | sed 's/, $//'
 }
 
 _populate_tproxy_set() {
-	local ips
-	[ -s "$TELEGRAM_IP_FILE" ] || _log "WARNING: $TELEGRAM_IP_FILE is empty, Telegram DC IPs will NOT be tproxied"
-	[ -s "$WARP_IP_FILE" ] || _log "WARNING: $WARP_IP_FILE is empty, Viber ranges will NOT be tproxied"
-	ips=$(_tproxy_elements)
-	if [ -z "$ips" ]; then
-		_log "WARNING: no IPs available, keeping existing nft set $TPROXY_IP_SET"
-		return
-	fi
-	# Flush inside the transaction: a separate flush leaves the set empty while the adds run, and
-	# a rejected batch then keeps the previous contents.
-	if ! {
-		echo "flush set inet fw4 $TPROXY_IP_SET"
-		for ip in $ips; do
-			echo "add element inet fw4 $TPROXY_IP_SET { ${ip%,} }"
-		done
-	} | nft -f - 2> /dev/null; then
-		# One overlap must cost that element, not the whole set. The transient empty window is
-		# acceptable only here: the alternative is a set that keeps its boot-time emptiness.
-		_log "WARNING: nft batch rejected, retrying element by element"
-		nft flush set inet fw4 "$TPROXY_IP_SET" 2> /dev/null
-		for ip in $ips; do
-			nft add element inet fw4 "$TPROXY_IP_SET" "{ ${ip%,} }" 2> /dev/null ||
-				_log "WARNING: nft rejected element ${ip%,}, excluded from $TPROXY_IP_SET"
-		done
-	fi
-	local n
-	n=$(nft list set inet fw4 "$TPROXY_IP_SET" 2> /dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}(/[0-9]+)?' | wc -l)
-	if [ "${n:-0}" -gt 0 ]; then
-		_log "Populated nft set $TPROXY_IP_SET with $n elements"
-	else
-		_log "ERROR: nft set $TPROXY_IP_SET is EMPTY - raw Telegram/Viber IPs will bypass mihomo"
-	fi
+  local ips
+  [ -s "$TELEGRAM_IP_FILE" ] || _log "WARNING: $TELEGRAM_IP_FILE is empty, Telegram DC IPs will NOT be tproxied"
+  [ -s "$WARP_IP_FILE" ] || _log "WARNING: $WARP_IP_FILE is empty, Viber ranges will NOT be tproxied"
+  ips=$(_tproxy_elements)
+  if [ -z "$ips" ]; then
+    _log "WARNING: no IPs available, keeping existing nft set $TPROXY_IP_SET"
+    return
+  fi
+  # Flush inside the transaction: a separate flush leaves the set empty while the adds run, and
+  # a rejected batch then keeps the previous contents.
+  if ! {
+    echo "flush set inet fw4 $TPROXY_IP_SET"
+    for ip in $ips; do
+      echo "add element inet fw4 $TPROXY_IP_SET { ${ip%,} }"
+    done
+  } | nft -f - 2> /dev/null; then
+    # One overlap must cost that element, not the whole set. The transient empty window is
+    # acceptable only here: the alternative is a set that keeps its boot-time emptiness.
+    _log "WARNING: nft batch rejected, retrying element by element"
+    nft flush set inet fw4 "$TPROXY_IP_SET" 2> /dev/null
+    for ip in $ips; do
+      nft add element inet fw4 "$TPROXY_IP_SET" "{ ${ip%,} }" 2> /dev/null \
+        || _log "WARNING: nft rejected element ${ip%,}, excluded from $TPROXY_IP_SET"
+    done
+  fi
+  local n
+  n=$(nft list set inet fw4 "$TPROXY_IP_SET" 2> /dev/null | grep -oE '([0-9]{1,3}\.){3}[0-9]{1,3}(/[0-9]+)?' | wc -l)
+  if [ "${n:-0}" -gt 0 ]; then
+    _log "Populated nft set $TPROXY_IP_SET with $n elements"
+  else
+    _log "ERROR: nft set $TPROXY_IP_SET is EMPTY - raw Telegram/Viber IPs will bypass mihomo"
+  fi
 }
