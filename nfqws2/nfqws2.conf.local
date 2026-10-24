@@ -1,0 +1,14 @@
+# Extra nfqws2 profiles kept outside nfqws2.conf: nfqws-menu replaces that file
+# wholesale when a strategy is applied. Sourced by /etc/init.d/nfqws2-keenetic,
+# NFQWS_ARGS_LOCAL is appended to NFQWS_ARGS_CUSTOM with one --new between them.
+#
+# The ISP cuts this host after a few KB on the direct path (the same Cloudflare
+# IP with another SNI is unaffected). The .рф TLD entries in lists/exclude.list
+# keep the catch-all profile away from it, so it gets its own desync profile.
+NFQWS_ARGS_LOCAL="--filter-tcp=443 --filter-l7=tls
+               --hostlist-domains=xn--80aacme6cggkk.xn--p1ai
+               --payload=tls_client_hello
+               --lua-desync=fake:blob=stun_fake:repeats=8:tcp_ts=-600000:tcp_ts_up
+               --lua-desync=fake:blob=tls_max:repeats=8:tcp_ts=-600000:tcp_ts_up
+               --lua-desync=multisplit:pos=1:seqovl=664:seqovl_pattern=tls_max
+"
