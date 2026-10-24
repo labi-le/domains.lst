@@ -6,4 +6,3 @@ dl.pstmn.io
 supporter-files.nexus-cdn.com
 ifconfig.me
 tapeop.dev
-xn--80aacme6cggkk.xn--p1ai
