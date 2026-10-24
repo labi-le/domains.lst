@@ -195,7 +195,7 @@ _nft_file_valid() {
 _domain_filter() {
   tr -d '\r' | awk 'NF>0 && !/^#/{print $1}' \
     | tr 'A-Z' 'a-z' | sed -e 's#^[+][.]##' -e 's#^[.]*##' \
-    | awk '/^[a-z0-9_*]([a-z0-9_*-]*\.)+[a-z]{2,}$/'
+    | awk '/^[a-z0-9_*]([a-z0-9_*-]*\.)+([a-z]{2,}|xn--[a-z0-9-]+)$/'
 }
 
 _process_rule_set() {
