@@ -2,11 +2,12 @@
 # wholesale when a strategy is applied. Sourced by /etc/init.d/nfqws2-keenetic,
 # NFQWS_ARGS_LOCAL is appended to NFQWS_ARGS_CUSTOM with one --new between them.
 #
-# The ISP cuts this host after a few KB on the direct path (the same Cloudflare
-# IP with another SNI is unaffected). The .рф TLD entries in lists/exclude.list
-# keep the catch-all profile away from it, so it gets its own desync profile.
+# The ISP cuts some .рф hosts after a few KB on the direct path (the same
+# Cloudflare IP with another SNI is unaffected). The package's lists/exclude.list
+# drops the whole xn--p1ai zone from desync, which keeps the catch-all profile
+# away from every .рф name, so the zone gets its own copy of that desync profile.
 NFQWS_ARGS_LOCAL="--filter-tcp=443 --filter-l7=tls
-               --hostlist-domains=xn--80aacme6cggkk.xn--p1ai
+               --hostlist-domains=xn--p1ai
                --payload=tls_client_hello
                --lua-desync=fake:blob=stun_fake:repeats=8:tcp_ts=-600000:tcp_ts_up
                --lua-desync=fake:blob=tls_max:repeats=8:tcp_ts=-600000:tcp_ts_up
