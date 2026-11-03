@@ -1,0 +1,6 @@
+config murmur 'main'
+	option enabled '1'
+	option user 'root'
+	option conffile '/etc/murmur/config.yaml'
+	option workdir '/tmp/murmur.d'
+	option ifaces 'wan awg0 awg1'

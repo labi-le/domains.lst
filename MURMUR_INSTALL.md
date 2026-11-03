@@ -1,0 +1,216 @@
+# Murmur Install Guide
+
+## Purpose
+
+This file documents the OpenWrt router installation flow for `murmur`, the router's
+proxy. It replaced `mihomo` on 2026-11-03 and took over the same ports (DNS `12344`,
+tproxy `12342`), so `nftables` and `dnsmasq` are unchanged.
+
+## Static Vs Runtime Layout
+
+Static files (on flash):
+
+- `/etc/murmur/config.yaml`
+- `/etc/init.d/murmur`
+- `/etc/config/murmur`
+- `/etc/init.d/pbr`
+- `/etc/proxy/murmur.bin.xz` (the compressed binary)
+- `/etc/nftables.d/99-tproxy.nft` (rendered by pbr)
+
+Mutable runtime files (in tmpfs, wiped on reboot):
+
+- `/tmp/murmur.bin` (the unpacked binary)
+- `/tmp/murmur.d/cache.db`
+- `/tmp/murmur.d/rules/*.txt`
+- `/tmp/murmur.d/providers/*.yaml`
+
+The rule lists live in tmpfs on purpose: they are refetched weekly, and writing them
+to flash every week costs erase cycles for no benefit. The cost is a boot window
+where the lists are empty, which is why pbr (`START=97`) runs before the proxy
+(`START=98`). A proxy started earlier matches nothing and sends every proxied domain
+to `MATCH,DIRECT`.
+
+Do not use `/tmp/murmur.d` as a temporary binary filename. It is the runtime
+directory. Use `/tmp/murmur.bin`.
+
+## The Binary Does Not Fit in Flash
+
+The overlay is a 37 MB UBI volume and the murmur binary is 25 MB uncompressed, so
+the binary travels compressed and is unpacked into tmpfs on every boot.
+
+| fact | value |
+| --- | --- |
+| binary, uncompressed | 25 MB |
+| binary, `xz -6` | 7.6 MB |
+| overlay free | about 13 MB |
+| `xz -9` | fails, needs about 300 MB of RAM |
+| `xz -6` | works, needs about 60 MB |
+
+The init script does this on boot:
+
+1. Unpack `/etc/proxy/murmur.bin.xz` into `/tmp/murmur.bin`.
+2. Verify the SHA-256 against the one in the init script. A mismatch is fatal.
+3. If the compressed copy is missing, download the binary from the cache host on the
+   LAN and verify its SHA-256 before running it.
+
+## Required Packages
+
+```sh
+opkg install dnsmasq-full stubby ca-bundle curl amneziawg-tools kmod-amneziawg xz
+```
+
+`xz` is required: without it the init script cannot unpack the binary from flash.
+
+## Deploy the Configuration
+
+```sh
+wget https://raw.githubusercontent.com/labi-le/domains.lst/main/murmur/init.d -O /tmp/murmur.init &&
+scp /tmp/murmur.init router:/etc/init.d/murmur &&
+ssh router 'chmod +x /etc/init.d/murmur'
+
+wget https://raw.githubusercontent.com/labi-le/domains.lst/main/murmur/config -O /tmp/murmur.uci &&
+scp /tmp/murmur.uci router:/etc/config/murmur
+
+wget https://raw.githubusercontent.com/labi-le/domains.lst/main/murmur/config.yaml -O /tmp/murmur.config.yaml &&
+scp /tmp/murmur.config.yaml router:/etc/murmur/config.yaml
+
+wget https://raw.githubusercontent.com/labi-le/domains.lst/main/pbr -O /tmp/pbr &&
+scp /tmp/pbr router:/etc/init.d/pbr &&
+ssh router 'chmod +x /etc/init.d/pbr'
+
+wget https://raw.githubusercontent.com/labi-le/domains.lst/main/proxy-ctl.sh -O /tmp/proxy-ctl &&
+scp /tmp/proxy-ctl router:/root/proxy-ctl.sh &&
+ssh router 'chmod +x /root/proxy-ctl.sh'
+```
+
+## Deploy the Binary
+
+Fetch the release binary and pack it for the router:
+
+```sh
+nix-shell
+murmur-fetch-router linux-arm64 /tmp --pack
+```
+
+That prints the SHA-256. Copy the compressed file and update the checksum in the
+init script:
+
+```sh
+scp /tmp/murmur.bin.xz router:/etc/proxy/murmur.bin.xz
+ssh router "sed -i 's/^SHA256=.*/SHA256=\"<sha256>\"/' /etc/init.d/murmur"
+```
+
+Without the matching checksum the init script refuses to run the binary.
+
+## Validate Config
+
+`murmur` supports these flags:
+
+- `-d, --home-dir PATH`
+- `-f, --config FILE`
+- `-t, --test`
+- `-v, --version`
+
+Validate the active config against the tmpfs runtime directory:
+
+```sh
+ssh router '/tmp/murmur.bin -t -d /tmp/murmur.d -f /etc/murmur/config.yaml'
+```
+
+## Local Dev Shell
+
+Use the repository `shell.nix` before copying config changes to the router:
+
+```sh
+nix-shell
+```
+
+Useful commands inside the shell:
+
+```sh
+murmur-yaml-check
+murmur-validate
+murmur-deploy-config
+murmur-fetch-router
+murmur-deploy
+```
+
+Equivalent explicit commands:
+
+```sh
+yq '.' murmur/config.yaml >/dev/null
+scp murmur/config.yaml router:/etc/murmur/config.yaml
+```
+
+## Start Services
+
+```sh
+ssh router '/etc/init.d/murmur enable && /etc/init.d/murmur restart'
+ssh router '/etc/init.d/pbr enable && /etc/init.d/pbr start'
+```
+
+## Verification
+
+### Router-Side Checks
+
+The admin helper runs all of them:
+
+```sh
+ssh router '/root/proxy-ctl.sh check'
+```
+
+Expected output:
+
+```
+  OK   DNS is listening on 12344
+  OK   tproxy is listening on 12342
+  OK   murmur is running
+  OK   <domain> resolves to the fake IP <ip>
+  OK   <domain> resolves to the real IP <ip>
+```
+
+Manual equivalents:
+
+```sh
+ssh router 'netstat -lntp | grep -E "12342|12344"'
+ssh router 'ls -lh /tmp/murmur.d/rules/ /tmp/murmur.d/cache.db'
+ssh router 'dig +short rutracker.org @127.0.0.1 -p 12344'
+ssh router 'nft list chain inet fw4 prerouting_tproxy'
+```
+
+The TPROXY counters must grow. If they stay at zero, the LAN traffic is not being
+intercepted even though the DNS answers look correct.
+
+### LAN Client Checks
+
+```sh
+curl -vk https://rutracker.org
+curl -vk https://chatgpt.com
+```
+
+### Log Checks
+
+```sh
+ssh router 'logread | grep murmur | grep -E "RuleSet\(vpn\)|RuleSet\(warp\)|using VPN|using WARP|using DIRECT"'
+```
+
+Expected current routing behavior:
+
+- `vpn` domains -> `VPN` (`VPN-ALL-AUTO` primary, direct `awg2` fallback)
+- `warp` domains -> `WARP` (`WARP-AWG0`/`awg0` primary, `WARP-AWG1`/`awg1` then `VPN`)
+- Telegram -> `WARP` (`awg0`)
+
+## Firmware Upgrades
+
+The configuration is listed in `/etc/sysupgrade.conf`, so a firmware upgrade keeps
+it. The compressed binary is deliberately not in the list: 7.6 MB does not fit into
+an upgrade image, and the init script can fetch it from the cache host instead.
+
+```sh
+ssh router 'cat /etc/sysupgrade.conf'
+```
+
+## References
+
+- murmur releases: `https://github.com/labile-le/murmur/releases`
+- The proxy's own documentation: `https://github.com/labile-le/murmur/tree/main/docs`

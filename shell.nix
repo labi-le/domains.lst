@@ -9,48 +9,59 @@ pkgs.mkShellNoCC {
     jq
     gzip
     upx
+    xz
   ];
 
   shellHook = ''
-    mihomo_config_default="mihomo/config.yaml"
-    mihomo_home_default="''${MIHOMO_HOME:-/tmp/mihomo}"
+    murmur_config_default="murmur/config.yaml"
+    murmur_home_default="''${MURMUR_HOME:-/tmp/murmur-work}"
 
-    mihomo-yaml-check() {
-      local config="''${1:-$mihomo_config_default}"
+    murmur-yaml-check() {
+      local config="''${1:-$murmur_config_default}"
       yq '.' "$config" >/dev/null
     }
 
-    mihomo-validate() {
-      local config="''${1:-$mihomo_config_default}"
-      local home_dir="''${2:-$mihomo_home_default}"
-      mihomo -t -d "$home_dir" -f "$config"
+    murmur-validate() {
+      local config="''${1:-$murmur_config_default}"
+      local home_dir="''${2:-$murmur_home_default}"
+      mkdir -p "$home_dir/rules" "$home_dir/providers"
+      # murmur checks its own config: -t validates, -d is the workdir.
+      murmur -t -d "$home_dir" -f "$config"
     }
 
-    mihomo-deploy-config() {
-      local target="''${1:-router:/etc/mihomo/config.yaml}"
-      mihomo-yaml-check "$mihomo_config_default" && \
-        mihomo-validate "$mihomo_config_default" && \
-        scp "$mihomo_config_default" "$target"
+    murmur-deploy-config() {
+      local target="''${1:-router:/etc/murmur/config.yaml}"
+      murmur-yaml-check "$murmur_config_default" && \
+        scp "$murmur_config_default" "$target"
     }
 
-    mihomo-fetch-router() {
-      local arch="''${1:-''${MIHOMO_ROUTER_ARCH:-linux-arm64}}"
+    # Downloads the release binary and packs it for the router's flash.
+    # The router's overlay has about 12 MB free, so the binary must travel
+    # compressed; xz -6 is the highest level that fits in the router's RAM.
+    murmur-fetch-router() {
+      local arch="''${1:-''${MURMUR_ROUTER_ARCH:-linux-arm64}}"
       local tmpdir="''${2:-''${TMPDIR:-/tmp}}"
-      local bin
 
       mkdir -p "$tmpdir"
-      bin="$(MIHOMO_ARCH="$arch" TMPDIR="$tmpdir" UPX_PROVIDER="upx --best" bash ./fetch-mihomo.sh)"
-      chmod +x "$bin"
-
-      echo "Router binary: $bin" >&2
-      echo "Deploy: scp \"$bin\" router:/tmp/mihomo.bin && ssh router 'cp /tmp/mihomo.bin /usr/bin/mihomo && chmod 755 /usr/bin/mihomo'" >&2
-      printf '%s\n' "$bin"
+      bash ./fetch-murmur.sh "$arch" "$tmpdir" --pack
     }
 
-    echo "mihomo dev shell"
-    echo "  mihomo-yaml-check [config]"
-    echo "  mihomo-validate [config] [home-dir]"
-    echo "  mihomo-deploy-config [router:/etc/mihomo/config.yaml]"
-    echo "  mihomo-fetch-router [linux-arm64] [tmpdir]"
+    # Syncs the repository files to the router and restarts the proxy.
+    murmur-deploy() {
+      local host="''${1:-router}"
+      scp murmur/init.d "$host":/etc/init.d/murmur
+      scp murmur/config "$host":/etc/config/murmur
+      scp murmur/config.yaml "$host":/etc/murmur/config.yaml
+      scp pbr "$host":/etc/init.d/pbr
+      scp proxy-ctl.sh "$host":/root/proxy-ctl.sh
+      ssh "$host" 'chmod +x /etc/init.d/murmur /etc/init.d/pbr /root/proxy-ctl.sh'
+    }
+
+    echo "murmur dev shell"
+    echo "  murmur-yaml-check [config]"
+    echo "  murmur-validate [config] [home-dir]"
+    echo "  murmur-deploy-config [router:/etc/murmur/config.yaml]"
+    echo "  murmur-fetch-router [linux-arm64] [tmpdir]"
+    echo "  murmur-deploy [router]"
   '';
 }

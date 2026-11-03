@@ -1,16 +1,21 @@
 #!/bin/sh /etc/rc.common
 
-START=99
-# Mirrors mihomo's own `fake-ip-range`; two copies drifting apart give a router where mihomo
-# hands out addresses no nft rule matches. Parsed at runtime in start() instead, same style as
-# mihomo/init.d's DNS-port parse.
-MIHOMO_CONF="/etc/mihomo/config.yaml"
+# pbr fills the rule files, and the proxy reads them at startup. The rule files live in
+# tmpfs, so after a reboot they are empty until pbr refetches them: a proxy started
+# earlier would match nothing and send every proxied domain to MATCH,DIRECT. pbr
+# therefore runs first, and the proxy starts once the rules are in place.
+START=97
+# Mirrors the proxy's own `fake-ip-range`; two copies drifting apart give a router where the
+# proxy hands out addresses no nft rule matches. Parsed at runtime in start() instead, same
+# style as murmur/init.d's DNS-port parse.
+MURMUR_CONF="/etc/murmur/config.yaml"
 FAKEIP_SUBNET=""
+TPROXY_PORT=""
 TPROXY_NFT_FILE="/etc/nftables.d/99-tproxy.nft"
 TPROXY_IP_SET="tproxy_ip4"
-TELEGRAM_IP_FILE="/tmp/mihomo/rules/telegram_ip.txt"
-WARP_IP_FILE="/tmp/mihomo/rules/warp_ip.txt"
-PERSIST_DIR="/etc/mihomo/rules"
+RULES_DIR="/tmp/murmur.d/rules"
+TELEGRAM_IP_FILE="$RULES_DIR/telegram_ip.txt"
+WARP_IP_FILE="$RULES_DIR/warp_ip.txt"
 
 # The weekly cron entry discards stderr, so a stderr-only warning is in practice silent.
 _log() {
@@ -18,18 +23,43 @@ _log() {
   echo "$*" >&2
 }
 
+# pbr runs before the proxy, so it cannot ask who holds the tproxy port. It reads the
+# config directly instead.
+_active_conf() {
+  [ -f "$MURMUR_CONF" ] || return 1
+  printf '%s' "$MURMUR_CONF"
+}
+
+# The tproxy port the proxy actually listens on, read from its config.
+_tproxy_port() {
+  local port
+  port=$(sed -n 's/^[[:space:]]*tproxy-port:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$1" | head -1)
+  case "$port" in
+    ''|*[!0-9]*) return 1 ;;
+  esac
+  printf '%s' "$port"
+}
+
 start() {
-  FAKEIP_SUBNET=$(sed -n 's/^[[:space:]]*fake-ip-range:[[:space:]]*\([0-9./]*\).*/\1/p' "$MIHOMO_CONF" | head -1)
+  ACTIVE_CONF=$(_active_conf) || {
+    _log "ERROR: no proxy config found, refusing to write TPROXY rules"
+    exit 1
+  }
+  FAKEIP_SUBNET=$(sed -n 's/^[[:space:]]*fake-ip-range:[[:space:]]*\([0-9./]*\).*/\1/p' "$ACTIVE_CONF" | head -1)
   if [ -z "$FAKEIP_SUBNET" ]; then
-    _log "ERROR: no fake-ip-range in $MIHOMO_CONF, refusing to write TPROXY rules for a guessed subnet"
+    _log "ERROR: no fake-ip-range in $ACTIVE_CONF, refusing to write TPROXY rules for a guessed subnet"
     exit 1
   fi
+  TPROXY_PORT=$(_tproxy_port "$ACTIVE_CONF") || {
+    _log "ERROR: no tproxy-port in $ACTIVE_CONF, refusing to write TPROXY rules for a guessed port"
+    exit 1
+  }
   _check_lo_covers_fakeip
-  mkdir -p /tmp/mihomo/rules
-  # mihomo tolerates a missing rule file, but that provider then matches nothing and silently
-  # sends its traffic to MATCH,DIRECT.
-  touch /tmp/mihomo/rules/vpn.txt /tmp/mihomo/rules/warp.txt /tmp/mihomo/rules/telegram.txt \
-    /tmp/mihomo/rules/realip.txt "$TELEGRAM_IP_FILE" "$WARP_IP_FILE"
+  mkdir -p "$RULES_DIR"
+  # The proxy tolerates a missing rule file, but that provider then matches nothing and
+  # silently sends its traffic to MATCH,DIRECT.
+  touch "$RULES_DIR/vpn.txt" "$RULES_DIR/warp.txt" "$RULES_DIR/telegram.txt" \
+    "$RULES_DIR/realip.txt" "$TELEGRAM_IP_FILE" "$WARP_IP_FILE"
   _process_rule_set "realip" \
     "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/realip.txt"
   _process_rule_set "vpn" \
@@ -57,8 +87,8 @@ start() {
   _install_ip_file "$WARP_IP_FILE"
   _write_tproxy_rules
   _populate_tproxy_set
-  _log "Restarting mihomo..."
-  /etc/init.d/mihomo restart
+  _log "Restarting murmur..."
+  /etc/init.d/murmur restart
   exit 0
 }
 
@@ -168,10 +198,10 @@ chain prerouting_tproxy {
 	type filter hook prerouting priority mangle; policy accept;
 
 	ip daddr $FAKEIP_SUBNET meta mark set 0x1
-	ip daddr $FAKEIP_SUBNET meta l4proto { tcp, udp } counter tproxy ip to :12342 accept
+	ip daddr $FAKEIP_SUBNET meta l4proto { tcp, udp } counter tproxy ip to :$TPROXY_PORT accept
 
 	iifname "br-lan" ip daddr @$TPROXY_IP_SET meta l4proto { tcp, udp } meta mark set 0x1
-	iifname "br-lan" ip daddr @$TPROXY_IP_SET meta l4proto { tcp, udp } counter tproxy ip to :12342 accept
+	iifname "br-lan" ip daddr @$TPROXY_IP_SET meta l4proto { tcp, udp } counter tproxy ip to :$TPROXY_PORT accept
 }
 EOF
 }
@@ -202,7 +232,7 @@ _process_rule_set() {
   local list_name="$1"
   shift
   local failed=0
-  local output="/tmp/mihomo/rules/${list_name}.txt"
+  local output="$RULES_DIR/${list_name}.txt"
   local accum="$output.raw"
   _log "Processing $list_name rule_set..."
   : > "$accum"
@@ -235,27 +265,10 @@ _process_rule_set() {
   rm -f "$accum"
   if [ "$failed" -eq 0 ] && [ -s "$output.tmp" ]; then
     mv "$output.tmp" "$output"
-    _persist_rule "$output"
     _log "Wrote $(wc -l < "$output") entries to $output"
   else
     rm -f "$output.tmp"
     _log "WARNING: no usable data fetched for $list_name, keeping existing $output"
-  fi
-}
-
-# /tmp/mihomo/rules is tmpfs. Without this copy a reboot leaves every rule-provider empty and
-# mihomo sends those domains to MATCH,DIRECT until this script has refetched everything; the
-# mihomo init script seeds the workdir back from here on boot.
-_persist_rule() {
-  local file="$1"
-  mkdir -p "$PERSIST_DIR"
-  # mihomo/init.d seeds anything non-empty from here as authoritative, so a half-written file
-  # would become the cold-boot copy.
-  if cp "$file" "$PERSIST_DIR/${file##*/}.tmp"; then
-    mv "$PERSIST_DIR/${file##*/}.tmp" "$PERSIST_DIR/${file##*/}"
-  else
-    rm -f "$PERSIST_DIR/${file##*/}.tmp"
-    _log "  - WARNING: could not persist $file"
   fi
 }
 
@@ -289,7 +302,6 @@ _install_ip_file() {
   local file="$1"
   if [ -s "$file.tmp" ] && [ ! -e "$file.tmp.fail" ]; then
     mv "$file.tmp" "$file"
-    _persist_rule "$file"
     _log "Wrote $(wc -l < "$file") entries to $file"
   else
     rm -f "$file.tmp"
@@ -334,6 +346,6 @@ _populate_tproxy_set() {
   if [ "${n:-0}" -gt 0 ]; then
     _log "Populated nft set $TPROXY_IP_SET with $n elements"
   else
-    _log "ERROR: nft set $TPROXY_IP_SET is EMPTY - raw Telegram/Viber IPs will bypass mihomo"
+    _log "ERROR: nft set $TPROXY_IP_SET is EMPTY - raw Telegram/Viber IPs will bypass the proxy"
   fi
 }
