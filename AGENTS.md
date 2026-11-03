@@ -57,9 +57,9 @@ Safety rules:
 
 - Validate locally before any deploy.
 - Confirm live router writes/restarts unless the current user message explicitly includes the exact deploy action and target.
-- Never use `/tmp/murmur.d` as a temporary binary path; it is the runtime directory. Use `/tmp/murmur.bin` for binary staging.
+- Never use `/tmp/murmur.d` as a temporary binary path; it is the runtime directory.
 - The rule lists live in `/tmp/murmur.d/rules` on purpose: they are refetched weekly and must not cost a flash erase cycle. The proxy watches them and reloads them on change, so a pbr run does not need a restart.
-- The binary is 25 MB and the overlay has about 12 MB free: replace it as the compressed copy at `/etc/proxy/murmur.bin.xz`, never as a raw file in flash.
+- The binary is built without `extra-protocols` so it fits in the 37 MB overlay. A build with `extra-protocols` does not fit; check `df -h /overlay` before replacing `/usr/bin/murmur`.
 - Update the SHA-256 in `/etc/init.d/murmur` when the binary changes, or the init script will refuse to run it.
 
 Useful commands:

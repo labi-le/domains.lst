@@ -13,7 +13,7 @@ chmod +x /etc/init.d/murmur
 
 wget https://raw.githubusercontent.com/labi-le/domains.lst/main/murmur/config -O /etc/config/murmur
 
-mkdir -p /etc/murmur /etc/proxy /tmp/murmur.d/rules &&
+mkdir -p /etc/murmur /tmp/murmur.d/rules &&
 wget https://raw.githubusercontent.com/labi-le/domains.lst/main/murmur/config.yaml -O /etc/murmur/config.yaml
 ```
 
@@ -31,22 +31,20 @@ service pbr start
 #### runtime layout
 
 ```text
-/etc/proxy/murmur.bin.xz  -> compressed binary, on flash
+/usr/bin/murmur           -> the binary
 /etc/murmur/config.yaml   -> static config, on flash
-/tmp/murmur.bin           -> the binary, unpacked from the compressed copy
 /tmp/murmur.d/cache.db    -> mutable cache
 /tmp/murmur.d/rules/*     -> rule lists, refetched by pbr and reloaded on change
 /tmp/murmur.d/providers/* -> downloaded proxy providers
 ```
 
 The rule lists are deliberately kept in tmpfs: they are refetched weekly and would
-otherwise cost a flash erase cycle every time. The binary cannot follow that rule
-because it has to exist before the network is up.
+otherwise cost a flash erase cycle every time. The binary lives on flash like any
+other package because it has to exist before the network is up.
 
-The binary is 25 MB and the overlay has about 12 MB free, so it cannot live in
-flash uncompressed. The init script keeps an `xz` copy on flash and unpacks it
-into tmpfs on every boot. If the compressed copy is missing, it downloads the
-binary from the cache host and verifies the SHA-256 before running it.
+The overlay is a 37 MB UBI volume, so the binary is built without
+`extra-protocols` (see `MURMUR_INSTALL.md`). That drops the hysteria2, anytls and
+tuic outbounds; vless, ss and vmess are unaffected.
 
 #### proxy-ctl
 
@@ -72,14 +70,6 @@ The proxy files are listed in `/etc/sysupgrade.conf`, so a firmware upgrade keep
 the configuration. The binary is not in the backup list: 7.6 MB of compressed
 binary does not fit into the upgrade image, and the init script can fetch it
 from the cache host instead.
-
-#### packages
-
-The router needs `xz` to unpack the binary:
-
-```sh
-opkg update && opkg install xz
-```
 
 #### block ipv6 youtube
 

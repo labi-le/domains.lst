@@ -1,28 +1,18 @@
 #!/bin/sh
-# Download the murmur binary for the router, compress it for flash, and verify it.
+# Download the murmur release binary for the router.
 #
-# The router's overlay has roughly 12 MB free, and the uncompressed murmur binary is
-# 25 MB. The binary therefore cannot live in flash uncompressed: the init script
-# keeps an xz-compressed copy on flash and unpacks it into tmpfs on every boot.
+# The release asset for aarch64 is the `router-vvt` build: no extra-protocols, which
+# is what makes it fit in the 37 MB overlay. A build with extra-protocols does not fit.
 #
 # Usage:
-#   fetch-murmur.sh <arch> <tmpdir>       download and stage the binary
-#   fetch-murmur.sh <arch> <tmpdir> --pack  also write the xz copy for the router
-#
-# The xz step must run where there is enough RAM: xz -9 needs about 300 MB and
-# fails with "Out of memory" on a router with 256 MB, where xz -6 needs about 60 MB
-# and produces a copy 4 MB larger.
+#   fetch-murmur.sh <arch> <tmpdir>
 
 set -eu
 
 ARCH="${1:-linux-arm64}"
 TMPDIR="${2:-${TMPDIR:-/tmp}}"
-PACK=0
-[ "${3:-}" = "--pack" ] && PACK=1
 
 REPO="labile-le/murmur"
-CACHE_HOST="192.168.1.2"
-CACHE_URL="https://cache.labile.cc/serve/5sfjlphiywgmn76k76q1wzv87xdzaqdf/"
 
 mkdir -p "$TMPDIR"
 
@@ -69,17 +59,5 @@ sha=$(sha256sum "$TMPDIR/murmur.bin" | cut -d' ' -f1)
 size=$(wc -c < "$TMPDIR/murmur.bin")
 echo "binary: $TMPDIR/murmur.bin ($size bytes)" >&2
 echo "sha256: $sha" >&2
-
-if [ "$PACK" -eq 1 ]; then
-	# xz -6 is the highest level that fits in the router's RAM.
-	xz -6 -c "$TMPDIR/murmur.bin" > "$TMPDIR/murmur.bin.xz"
-	echo "packed: $TMPDIR/murmur.bin.xz ($(wc -c < "$TMPDIR/murmur.bin.xz") bytes)" >&2
-	echo >&2
-	echo "Deploy:" >&2
-	echo "  scp '$TMPDIR/murmur.bin.xz' router:/etc/proxy/murmur.bin.xz" >&2
-	echo "  ssh router 'sed -i \"s/^SHA256=.*/SHA256=\\\"$sha\\\"/\" /etc/init.d/murmur'" >&2
-	echo >&2
-	echo "The cache host copy is at $CACHE_URL" >&2
-fi
 
 printf '%s\n' "$sha"

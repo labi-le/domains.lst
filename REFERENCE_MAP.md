@@ -5,14 +5,13 @@
 | repo path | router path | role | state |
 | --- | --- | --- | --- |
 | `murmur/config.yaml` | `/etc/murmur/config.yaml` | Main murmur static config (awg0=BY, awg1/awg2=WARP/FI) | static |
-| `murmur/init.d` | `/etc/init.d/murmur` | Procd service script; unpacks the binary and seeds the workdir | static |
+| `murmur/init.d` | `/etc/init.d/murmur` | Procd service script | static |
 | `murmur/config` | `/etc/config/murmur` | UCI service settings for murmur | static |
 | `pbr` | `/etc/init.d/pbr` | Regenerates the rule files and the TPROXY IP set, then restarts the proxy | static |
 | `proxy-ctl.sh` | `/root/proxy-ctl.sh` | Admin helper: status, check, restart, refresh | static |
 | `external-dns` | `/etc/init.d/external-dns` | Updates external router DNS record in UCI/dnsmasq | static |
 | `youtube-ipv6-block` | `/etc/init.d/youtube-ipv6-block` | IPv6 blocking helper for YouTube | static |
-| `(not tracked)` | `/etc/proxy/murmur.bin.xz` | Compressed murmur binary (xz -6, about 7.6 MB) | binary |
-| `(not tracked)` | `/tmp/murmur.bin` | The unpacked binary, unpacked from the compressed copy on boot | runtime |
+| `(not tracked)` | `/usr/bin/murmur` | The binary, built without `extra-protocols` | binary |
 | `(not tracked)` | `/tmp/murmur.d/cache.db` | murmur mutable cache database | runtime |
 | `(not tracked)` | `/tmp/murmur.d/rules/*.txt` | Rule lists, written by pbr, reloaded by murmur on change | runtime |
 | `(not tracked)` | `/tmp/murmur.d/providers/*.yaml` | Downloaded proxy-provider cache | runtime |
@@ -45,5 +44,3 @@ files remain in git history (`git log --all -- mihomo/`).
 | `murmur` | proxy-provider | `http://192.168.1.2:7008/stable.txt` | Pre-filtered node list from the sub-preprocessor |
 | `murmur` | URL test | `https://platform.claude.com/` | Probe URL for `VPN-ALL-AUTO` and `VPN` |
 | `murmur` | fallback health | `http://captive.apple.com/` | Off-net probe URL for the `WARP` group |
-| `fetch-murmur.sh` | release | `https://api.github.com/repos/labile-le/murmur/releases/latest` | Release metadata |
-| `murmur/init.d` | binary fallback | `https://cache.labile.cc/serve/5sfjlphiywgmn76k76q1wzv87xdzaqdf/` | Binary download when the flash copy is missing |

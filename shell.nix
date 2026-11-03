@@ -34,15 +34,13 @@ pkgs.mkShellNoCC {
         scp "$murmur_config_default" "$target"
     }
 
-    # Downloads the release binary and packs it for the router's flash.
-    # The router's overlay has about 12 MB free, so the binary must travel
-    # compressed; xz -6 is the highest level that fits in the router's RAM.
+    # Downloads the release binary for the router.
     murmur-fetch-router() {
       local arch="''${1:-''${MURMUR_ROUTER_ARCH:-linux-arm64}}"
       local tmpdir="''${2:-''${TMPDIR:-/tmp}}"
 
       mkdir -p "$tmpdir"
-      bash ./fetch-murmur.sh "$arch" "$tmpdir" --pack
+      bash ./fetch-murmur.sh "$arch" "$tmpdir"
     }
 
     # Syncs the repository files to the router and restarts the proxy.

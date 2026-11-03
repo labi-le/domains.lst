@@ -14,12 +14,11 @@ Static files (on flash):
 - `/etc/init.d/murmur`
 - `/etc/config/murmur`
 - `/etc/init.d/pbr`
-- `/etc/proxy/murmur.bin.xz` (the compressed binary)
+- `/usr/bin/murmur` (the binary)
 - `/etc/nftables.d/99-tproxy.nft` (rendered by pbr)
 
 Mutable runtime files (in tmpfs, wiped on reboot):
 
-- `/tmp/murmur.bin` (the unpacked binary)
 - `/tmp/murmur.d/cache.db`
 - `/tmp/murmur.d/rules/*.txt`
 - `/tmp/murmur.d/providers/*.yaml`
@@ -31,35 +30,40 @@ where the lists are empty, which is why pbr (`START=97`) runs before the proxy
 to `MATCH,DIRECT`.
 
 Do not use `/tmp/murmur.d` as a temporary binary filename. It is the runtime
-directory. Use `/tmp/murmur.bin`.
+directory.
 
-## The Binary Does Not Fit in Flash
+## The Build
 
-The overlay is a 37 MB UBI volume and the murmur binary is 25 MB uncompressed, so
-the binary travels compressed and is unpacked into tmpfs on every boot.
+The binary must fit in a 37 MB overlay, so it is built without `extra-protocols`:
 
-| fact | value |
-| --- | --- |
-| binary, uncompressed | 25 MB |
-| binary, `xz -6` | 7.6 MB |
-| overlay free | about 13 MB |
-| `xz -9` | fails, needs about 300 MB of RAM |
-| `xz -6` | works, needs about 60 MB |
+```sh
+nix develop .#aarch64-musl --command bash -c '
+  cargo build --locked --profile compact -p murmur --bin murmur \
+    --no-default-features --features router-vvt \
+    --target aarch64-unknown-linux-musl'
+```
 
-The init script does this on boot:
+`router-vvt` is `with_low_memory`, `with_gvisor`, `no_easytier`, `no_tailscale`,
+`no_zerotier` and, crucially, no `extra-protocols`. Dropping that feature removes 17
+transport crates: hysteria, hysteria2, anytls, tuic, mieru, openvpn, shadowquic,
+snell, ssr, sudoku, trusttunnel, kcptun, masque, simple-obfs and the quic and russh
+dependencies. The subscription's vless, ss and vmess nodes are unaffected; its
+hysteria2 and anytls nodes cannot be dialled by this build.
 
-1. Unpack `/etc/proxy/murmur.bin.xz` into `/tmp/murmur.bin`.
-2. Verify the SHA-256 against the one in the init script. A mismatch is fatal.
-3. If the compressed copy is missing, download the binary from the cache host on the
-   LAN and verify its SHA-256 before running it.
+Installing it is then a plain file copy:
+
+```sh
+scp target/aarch64-unknown-linux-musl/compact/murmur router:/usr/bin/murmur
+ssh router 'chmod 755 /usr/bin/murmur'
+```
 
 ## Required Packages
 
 ```sh
-opkg install dnsmasq-full stubby ca-bundle curl amneziawg-tools kmod-amneziawg xz
+opkg install dnsmasq-full stubby ca-bundle curl amneziawg-tools kmod-amneziawg
 ```
 
-`xz` is required: without it the init script cannot unpack the binary from flash.
+`xz` is not needed: the binary is a normal executable.
 
 ## Deploy the Configuration
 
@@ -85,22 +89,16 @@ ssh router 'chmod +x /root/proxy-ctl.sh'
 
 ## Deploy the Binary
 
-Fetch the release binary and pack it for the router:
-
 ```sh
-nix-shell
-murmur-fetch-router linux-arm64 /tmp --pack
+scp target/aarch64-unknown-linux-musl/compact/murmur router:/usr/bin/murmur
+ssh router 'chmod 755 /usr/bin/murmur'
 ```
 
-That prints the SHA-256. Copy the compressed file and update the checksum in the
-init script:
+Verify the build the same way the init script does:
 
 ```sh
-scp /tmp/murmur.bin.xz router:/etc/proxy/murmur.bin.xz
-ssh router "sed -i 's/^SHA256=.*/SHA256=\"<sha256>\"/' /etc/init.d/murmur"
+ssh router '/usr/bin/murmur -v'
 ```
-
-Without the matching checksum the init script refuses to run the binary.
 
 ## Validate Config
 
@@ -114,7 +112,7 @@ Without the matching checksum the init script refuses to run the binary.
 Validate the active config against the tmpfs runtime directory:
 
 ```sh
-ssh router '/tmp/murmur.bin -t -d /tmp/murmur.d -f /etc/murmur/config.yaml'
+ssh router '/usr/bin/murmur -t -d /tmp/murmur.d -f /etc/murmur/config.yaml'
 ```
 
 ## Local Dev Shell

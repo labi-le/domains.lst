@@ -73,13 +73,12 @@ Two kinds of state, kept apart on purpose:
 
 **On flash (survives a reboot, written rarely):**
 
+- `/usr/bin/murmur`: the binary, a normal executable
 - `/etc/murmur/config.yaml`, `/etc/init.d/murmur`, `/etc/config/murmur`
-- `/etc/proxy/murmur.bin.xz`: the compressed binary (xz -6, about 7.6 MB)
 - `/etc/nftables.d/99-tproxy.nft`: the TPROXY rules, rendered by pbr
 
 **In tmpfs (wiped on reboot, written often):**
 
-- `/tmp/murmur.bin`: the unpacked binary
 - `/tmp/murmur.d/rules/*.txt`: the rule lists, refetched by pbr
 - `/tmp/murmur.d/providers/*.yaml`: the proxy-provider cache
 - `/tmp/murmur.d/cache.db`
@@ -87,19 +86,11 @@ Two kinds of state, kept apart on purpose:
 The rule lists change weekly and grow to tens of kilobytes; writing them to flash
 every week costs erase cycles for no benefit. They live in tmpfs and are refetched.
 
-The binary cannot follow the same rule: it has to be present before the network is
-up. The overlay is a 37 MB UBI volume and the binary is 25 MB uncompressed, so a
-compressed copy lives on flash and is unpacked into tmpfs on every boot.
-
-`xz -9` needs about 300 MB of RAM and fails with "Out of memory" on this router.
-`xz -6` needs about 60 MB and produces a copy about 4 MB larger, which fits.
-
-If the compressed copy is missing, the init script downloads the binary from the
-cache host on the LAN and verifies its SHA-256 before running it. A download that
-fails the checksum is discarded rather than executed.
-
-The compressed binary is not listed in `/etc/sysupgrade.conf`: 7.6 MB does not fit
-into a firmware upgrade image, and the download fallback covers that case.
+The binary has to be present before the network is up, so it lives on flash like any
+other package. It only fits because it is built without `extra-protocols`: that
+drops 17 transport crates and, with them, the hysteria/hysteria2, anytls, tuic,
+mieru, openvpn, shadowquic and snell outbounds. The subscription's vless, ss and
+vmess nodes are unaffected.
 
 ## Static Vs Runtime
 
@@ -112,11 +103,10 @@ into a firmware upgrade image, and the download fallback covers that case.
 - `/etc/config/dhcp`
 - `/etc/config/firewall`
 - `/etc/nftables.d/99-tproxy.nft`
-- `/etc/proxy/murmur.bin.xz`
+- `/usr/bin/murmur`
 
 ### Runtime
 
-- `/tmp/murmur.bin`
 - `/tmp/murmur.d/cache.db`
 - `/tmp/murmur.d/rules/*.txt`
 - `/tmp/murmur.d/providers/*.yaml`
@@ -139,4 +129,4 @@ into a firmware upgrade image, and the download fallback covers that case.
 - After a reboot the rule files are empty until pbr has refetched them. pbr runs first (`START=97`) and the proxy second (`START=98`): a proxy started earlier would match nothing and send every proxied domain to `MATCH,DIRECT`. Measured on this router: the gap between the proxy starting and pbr finishing was about 25 seconds.
 - murmur watches the rule files and reloads them by itself, so a later pbr run does not need a restart. The log line is `[Provider] <name>'s content update`.
 - pbr reads `/etc/murmur/config.yaml` directly. It must not ask which process holds the tproxy port: it runs before the proxy does.
-- The temporary binary staging path must not reuse `/tmp/murmur.d`, because that path is the runtime directory. Use `/tmp/murmur.bin`.
+- The temporary binary staging path must not reuse `/tmp/murmur.d`, because that path is the runtime directory.

@@ -26,7 +26,7 @@ _ports() {
 _status() {
 	_ports
 	echo "=== murmur ==="
-	ps w | grep "[m]urmur.bin" | sed 's/^/  /' || echo "  NOT RUNNING"
+	ps w | grep "[u]sr/bin/murmur" | sed 's/^/  /' || echo "  NOT RUNNING"
 	echo "=== listeners (DNS $_dns, tproxy $_tp) ==="
 	netstat -lntp 2>/dev/null | grep -E ":(${_dns}|${_tp})[[:space:]]" | sed 's/^/  /'
 	echo "=== rule files (tmpfs, refetched by pbr) ==="
@@ -70,7 +70,7 @@ _check() {
 		echo "  FAIL tproxy is not listening on $_tp"
 		_rc=1
 	fi
-	if ps w | grep -q "[m]urmur.bin"; then
+	if ps w | grep -q "[u]sr/bin/murmur"; then
 		echo "  OK   murmur is running"
 	else
 		echo "  FAIL murmur is not running"
