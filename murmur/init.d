@@ -90,25 +90,6 @@ _flush_dns_cache() {
 	killall -HUP dnsmasq 2> /dev/null
 }
 
-# Whether murmur is the process serving the tproxy port. The binary is unpacked to
-# /tmp/murmur.bin, so the file name does not identify the service, and both proxies
-# can be running while only one of them holds the port.
-_owns_tproxy_port() {
-	local conf port owner
-	conf=$(sed -n "s/^[[:space:]]*conffile[[:space:]]*'\(.*\)'.*/\1/p" /etc/config/murmur | head -1)
-	[ -f "$conf" ] || conf="/etc/murmur/config.yaml"
-	port=$(sed -n 's/^[[:space:]]*tproxy-port:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$conf" | head -1)
-	case "$port" in
-		''|*[!0-9]*) return 1 ;;
-	esac
-	owner=$(netstat -lntp 2> /dev/null | grep -E ":${port}[[:space:]]" | head -1 \
-		| grep -oE '[0-9]+/[A-Za-z0-9._-]+' | head -1)
-	case "$owner" in
-		*murmur*) return 0 ;;
-		*) return 1 ;;
-	esac
-}
-
 start_service() {
 	config_load "$NAME"
 
@@ -120,32 +101,6 @@ start_service() {
 	config_get conffile "main" "conffile" "$CONF"
 	config_get workdir "main" "workdir" "$WORKDIR"
 	config_get ifaces "main" "ifaces"
-
-	# Refuse to start while another proxy holds the tproxy port: two proxies on the
-	# same port means one of them silently loses every connection, and the nft rules
-	# point at the configured port, not at whoever won the bind.
-	if ! _owns_tproxy_port; then
-		local conf port owner
-		conf=$(sed -n "s/^[[:space:]]*conffile[[:space:]]*'\(.*\)'.*/\1/p" /etc/config/murmur | head -1)
-		[ -f "$conf" ] || conf="/etc/murmur/config.yaml"
-		port=$(sed -n 's/^[[:space:]]*tproxy-port:[[:space:]]*\([0-9][0-9]*\).*/\1/p' "$conf" | head -1)
-		case "$port" in
-			''|*[!0-9]*) port=12342 ;;
-		esac
-		owner=$(netstat -lntp 2> /dev/null | grep -E ":${port}[[:space:]]" | head -1 \
-			| grep -oE '[0-9]+/[A-Za-z0-9._-]+' | head -1)
-		case "$owner" in
-			*mihomo*)
-				_log "ERROR: mihomo still holds the tproxy port $port, refusing to start murmur"
-				return 1
-				;;
-			*)
-				# An empty owner means nothing is listening yet, which is the normal
-				# case on a restart: murmur was stopped and is about to start again.
-				[ -n "$owner" ] && _log "WARNING: tproxy port $port is held by '$owner', not by murmur"
-				;;
-		esac
-	fi
 
 	_prepare_binary || return 1
 

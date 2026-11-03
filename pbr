@@ -87,8 +87,16 @@ start() {
   _install_ip_file "$WARP_IP_FILE"
   _write_tproxy_rules
   _populate_tproxy_set
-  _log "Restarting murmur..."
-  /etc/init.d/murmur restart
+  # At boot pbr runs before the proxy (see START above), so there is nothing to
+  # restart yet: the proxy picks the freshly written rules up when it starts.
+  # On a manual run the proxy is already up, and a restart makes it re-read the
+  # nft rules without waiting for the file watcher.
+  if /etc/init.d/murmur status > /dev/null 2>&1; then
+    _log "Restarting murmur..."
+    /etc/init.d/murmur restart
+  else
+    _log "murmur is not running, leaving the start to the init sequence"
+  fi
   exit 0
 }
 
