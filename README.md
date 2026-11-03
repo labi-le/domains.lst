@@ -81,21 +81,6 @@ The router needs `xz` to unpack the binary:
 opkg update && opkg install xz
 ```
 
-#### mihomo (removed)
-
-mihomo was removed from the router on 2026-11-03. The files below are kept in
-this repository for reference only and are no longer deployed.
-
-```sh
-wget https://raw.githubusercontent.com/labi-le/domains.lst/main/mihomo/init.d -O /etc/init.d/mihomo &&
-chmod +x /etc/init.d/mihomo
-
-wget https://raw.githubusercontent.com/labi-le/domains.lst/main/mihomo/config -O /etc/config/mihomo
-
-mkdir -p /etc/mihomo &&
-wget https://raw.githubusercontent.com/labi-le/domains.lst/main/mihomo/config.yaml -O /etc/mihomo/config.yaml
-```
-
 #### block ipv6 youtube
 
 ```sh

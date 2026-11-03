@@ -6,7 +6,8 @@ This repository manages OpenWrt router networking files, primarily the murmur pr
 
 murmur is the router's proxy. It replaced mihomo on 2026-11-03 and took over the
 same ports (DNS `12344`, tproxy `12342`), so nftables and dnsmasq are unchanged.
-The mihomo files are kept in this repository for reference only and are not deployed.
+mihomo was removed from the router and from this repository; its files remain in git
+history only.
 
 - `murmur/config.yaml` -> router `/etc/murmur/config.yaml`
 - `murmur/init.d` -> router `/etc/init.d/murmur`
@@ -15,8 +16,6 @@ The mihomo files are kept in this repository for reference only and are not depl
 - `proxy-ctl.sh` -> router `/root/proxy-ctl.sh`
 - `shell.nix` -> local dev shell for validation and config deploy helpers
 - `fetch-murmur.sh` -> downloads the release binary, compresses it for flash with xz, and prints the checksum
-- `fetch-mihomo.sh` -> legacy; mihomo is no longer deployed
-- `MIHOMO_INSTALL.md` -> legacy install notes for mihomo
 - `REFERENCE_MAP.md` -> repo-to-router mapping and external source URLs
 - `ARCHITECTURE.md` -> DNS, fake-IP, TPROXY, routing, and binary storage design
 

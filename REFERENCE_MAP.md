@@ -20,12 +20,8 @@
 
 ### Removed
 
-| repo path | former router path | note |
-| --- | --- | --- |
-| `mihomo/config.yaml` | `/etc/mihomo/config.yaml` | removed 2026-11-03, kept for reference |
-| `mihomo/init.d` | `/etc/init.d/mihomo` | removed 2026-11-03, kept for reference |
-| `mihomo/config` | `/etc/config/mihomo` | removed 2026-11-03, kept for reference |
-| `fetch-mihomo.sh` | `/usr/bin/mihomo` | no longer deployed |
+mihomo was removed from the router and from this repository on 2026-11-03. Its
+files remain in git history (`git log --all -- mihomo/`).
 
 ## Sources
 

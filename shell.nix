@@ -2,7 +2,6 @@
 
 pkgs.mkShellNoCC {
   packages = with pkgs; [
-    mihomo
     yq-go
     openssh
     curl
