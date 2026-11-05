@@ -65,29 +65,26 @@ opkg install dnsmasq-full stubby ca-bundle curl amneziawg-tools kmod-amneziawg
 
 `xz` is not needed: the binary is a normal executable.
 
-## Deploy the Configuration
+## Deploy the Binary and Service
+
+Install `murmur` (`/usr/bin/murmur`, `/etc/init.d/murmur` with `--watch-config` and `nofile="4096 4096"`, and `/etc/config/murmur`) via the one-line OpenWrt installer:
 
 ```sh
-wget https://raw.githubusercontent.com/labi-le/domains.lst/main/murmur/init.d -O /tmp/murmur.init &&
-scp /tmp/murmur.init router:/etc/init.d/murmur &&
-ssh router 'chmod +x /etc/init.d/murmur'
-
-wget https://raw.githubusercontent.com/labi-le/domains.lst/main/murmur/config -O /tmp/murmur.uci &&
-scp /tmp/murmur.uci router:/etc/config/murmur
-
-wget https://raw.githubusercontent.com/labi-le/domains.lst/main/murmur/config.yaml -O /tmp/murmur.config.yaml &&
-scp /tmp/murmur.config.yaml router:/etc/murmur/config.yaml
-
-wget https://raw.githubusercontent.com/labi-le/domains.lst/main/pbr -O /tmp/pbr &&
-scp /tmp/pbr router:/etc/init.d/pbr &&
-ssh router 'chmod +x /etc/init.d/pbr'
-
-wget https://raw.githubusercontent.com/labi-le/domains.lst/main/proxy-ctl.sh -O /tmp/proxy-ctl &&
-scp /tmp/proxy-ctl router:/root/proxy-ctl.sh &&
-ssh router 'chmod +x /root/proxy-ctl.sh'
+ssh router 'sh -c "$(curl -fsSL https://raw.githubusercontent.com/labi-le/murmur/main/packaging/openwrt/install.sh)"'
 ```
 
-## Deploy the Binary
+Or install the `.ipk` package directly from `https://github.com/labi-le/murmur/releases/tag/Prerelease-Alpha`:
+
+```sh
+ssh router '
+  ver=$(curl -fsSL https://github.com/labi-le/murmur/releases/download/Prerelease-Alpha/version.txt) &&
+  curl -fsSL "https://github.com/labi-le/murmur/releases/download/Prerelease-Alpha/murmur-vvt_${ver}_aarch64_generic.ipk" -o /tmp/murmur.ipk &&
+  opkg install /tmp/murmur.ipk &&
+  rm -f /tmp/murmur.ipk
+'
+```
+
+When deploying a locally compiled binary directly:
 
 ```sh
 scp target/aarch64-unknown-linux-musl/compact/murmur router:/usr/bin/murmur
@@ -98,6 +95,21 @@ Verify the build the same way the init script does:
 
 ```sh
 ssh router '/usr/bin/murmur -v'
+```
+
+## Deploy the Configuration
+
+```sh
+wget https://raw.githubusercontent.com/labi-le/domains.lst/main/murmur/config.yaml -O /tmp/murmur.config.yaml &&
+scp /tmp/murmur.config.yaml router:/etc/murmur/config.yaml
+
+wget https://raw.githubusercontent.com/labi-le/domains.lst/main/pbr -O /tmp/pbr &&
+scp /tmp/pbr router:/etc/init.d/pbr &&
+ssh router 'chmod +x /etc/init.d/pbr'
+
+wget https://raw.githubusercontent.com/labi-le/domains.lst/main/proxy-ctl.sh -O /tmp/proxy-ctl &&
+scp /tmp/proxy-ctl router:/root/proxy-ctl.sh &&
+ssh router 'chmod +x /root/proxy-ctl.sh'
 ```
 
 ## Validate Config
@@ -210,5 +222,5 @@ ssh router 'cat /etc/sysupgrade.conf'
 
 ## References
 
-- murmur releases: `https://github.com/labile-le/murmur/releases`
-- The proxy's own documentation: `https://github.com/labile-le/murmur/tree/main/docs`
+- murmur releases: `https://github.com/labi-le/murmur/releases/tag/Prerelease-Alpha`
+- The proxy's own documentation: `https://github.com/labi-le/murmur/tree/main/docs`

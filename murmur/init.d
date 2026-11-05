@@ -7,6 +7,7 @@ USE_PROCD=1
 # so the proxy starts after pbr has filled them. murmur watches the rule files and
 # reloads them on their own, so a later pbr run does not need a restart.
 START=98
+STOP=10
 
 script=$(readlink "$initscript")
 NAME="$(basename "${script:-$initscript}")"
@@ -23,7 +24,7 @@ _log() {
 start_service() {
 	config_load "$NAME"
 
-	local enabled user conffile workdir ifaces
+	local enabled user conffile workdir ifaces watch_config
 	config_get_bool enabled "main" "enabled" "0"
 	[ "$enabled" -eq "1" ] || return 0
 
@@ -31,6 +32,7 @@ start_service() {
 	config_get conffile "main" "conffile" "$CONF"
 	config_get workdir "main" "workdir" "$WORKDIR"
 	config_get ifaces "main" "ifaces"
+	config_get_bool watch_config "main" "watch_config" "1"
 
 	if [ ! -x "$PROG" ]; then
 		_log "ERROR: $PROG is missing or not executable"
@@ -39,20 +41,36 @@ start_service() {
 
 	mkdir -p "$workdir" "$workdir/rules" "$workdir/providers"
 	local group
-	group="$(id -ng "$user")"
-	chown "$user:$group" "$workdir" 2> /dev/null
+	group="$(id -ng "$user" 2>/dev/null || echo root)"
+	chown "$user:$group" "$workdir" 2> /dev/null || true
+
+	"$PROG" -t -d "$workdir" -f "$conffile" || {
+		_log "ERROR: configuration test failed for $conffile"
+		return 1
+	}
 
 	procd_open_instance "$NAME.main"
-	procd_set_param command "$PROG" -d "$workdir" -f "$conffile"
+	if [ "$watch_config" -eq "1" ]; then
+		procd_set_param command "$PROG" --watch-config -d "$workdir" -f "$conffile"
+	else
+		procd_set_param command "$PROG" -d "$workdir" -f "$conffile"
+	fi
 	procd_set_param user "$user"
-	procd_set_param file "$conffile"
 	[ -z "$ifaces" ] || procd_set_param netdev $ifaces
 	procd_set_param stdout 1
 	procd_set_param stderr 1
-	procd_set_param respawn
+	# The resolver, the tproxy relay and every UDP flow share one descriptor budget.
+	# The default 1024 soft limit is what murmur hit, so pin it at the hard cap.
+	procd_set_param limits nofile="4096 4096"
+	procd_set_param respawn 3600 5 5
+	procd_set_param term_timeout 30
 	procd_close_instance
 
 	_flush_dns_cache "$conffile" &
+}
+
+reload_service() {
+	procd_send_signal "$NAME" "$NAME.main" HUP
 }
 
 # The DNS listener opens before the rule-providers finish loading, so the first

@@ -8,13 +8,12 @@ murmur replaced mihomo as the router's proxy. It takes over the same ports
 (DNS `12344`, tproxy `12342`), so nftables and dnsmasq are unchanged.
 
 ```sh
-wget https://raw.githubusercontent.com/labi-le/domains.lst/main/murmur/init.d -O /etc/init.d/murmur &&
-chmod +x /etc/init.d/murmur
-
-wget https://raw.githubusercontent.com/labi-le/domains.lst/main/murmur/config -O /etc/config/murmur
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/labi-le/murmur/main/packaging/openwrt/install.sh)"
 
 mkdir -p /etc/murmur /tmp/murmur.d/rules &&
-wget https://raw.githubusercontent.com/labi-le/domains.lst/main/murmur/config.yaml -O /etc/murmur/config.yaml
+wget https://raw.githubusercontent.com/labi-le/domains.lst/main/murmur/config.yaml -O /etc/murmur/config.yaml &&
+service murmur enable &&
+service murmur restart
 ```
 
 #### pbr

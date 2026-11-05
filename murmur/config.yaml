@@ -110,12 +110,12 @@ proxy-groups:
     type: url-test
     use:
       - stable
-    url: "https://platform.claude.com/"
+    url: "https://browser.yandex.ru/generate_204"
     interval: 60
     timeout: 1000
     tolerance: 150
     lazy: false
-    expected-status: 200-399
+    expected-status: 204
     max-failed-times: 1
     # An empty `stable` provider must not degrade to COMPATIBLE, a plain direct outbound with
     # no interface bind, which would egress vpn domains straight to the WAN. REJECT keeps the
