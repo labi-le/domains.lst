@@ -57,13 +57,11 @@ proxy-providers:
     path: ./providers/stable.yaml
     interval: 3600
     # This build has no extra-protocols, so any type behind that feature cannot be
-    # dialled: ss, ssr, hysteria, hysteria2, anytls, tuic, snell, mieru, shadowquic,
-    # wireguard, ssh, socks5, http, sudoku, masque, trusttunnel, openvpn, gost-relay.
-    # A single unparsable node aborts the WHOLE provider ("proxy N error"), which would
-    # leave the VPN group empty, so those types are dropped before parsing.
-    # The subscription carries 14 ss, 14 hysteria2 and 6 anytls nodes; the remaining
-    # 109 vless and vmess nodes load.
-    exclude-type: "ss|ssr|hysteria|hysteria2|anytls|tuic|snell|mieru|shadowquic|wireguard|ssh|socks5|http|sudoku|masque|trusttunnel|openvpn|gost-relay"
+    # dialled: ssr, hysteria, tuic, snell, mieru, shadowquic, wireguard, ssh, socks5,
+    # http, sudoku, masque, trusttunnel, openvpn, gost-relay.
+    # Base router-vvt includes vless, vmess, trojan, ss, hysteria2 and anytls, which
+    # cover 100% of the nodes published by sub-preprocessor.
+    exclude-type: "ssr|hysteria|tuic|snell|mieru|shadowquic|wireguard|ssh|socks5|http|sudoku|masque|trusttunnel|openvpn|gost-relay"
     health-check:
       enable: true
       url: "http://cp.cloudflare.com/generate_204"

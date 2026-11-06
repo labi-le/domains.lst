@@ -44,11 +44,11 @@ nix develop .#aarch64-musl --command bash -c '
 ```
 
 `router-vvt` is `with_low_memory`, `with_gvisor`, `no_easytier`, `no_tailscale`,
-`no_zerotier` and, crucially, no `extra-protocols`. Dropping that feature removes 17
-transport crates: hysteria, hysteria2, anytls, tuic, mieru, openvpn, shadowquic,
-snell, ssr, sudoku, trusttunnel, kcptun, masque, simple-obfs and the quic and russh
-dependencies. The subscription's vless, ss and vmess nodes are unaffected; its
-hysteria2 and anytls nodes cannot be dialled by this build.
+`no_zerotier` and, crucially, no `extra-protocols`. Dropping that feature removes 15
+transport crates: hysteria (v1), tuic, mieru, openvpn, shadowquic, snell, ssr, sudoku,
+trusttunnel, kcptun, masque, simple-obfs and the quic and russh dependencies. Base
+`router-vvt` retains `vless`, `vmess`, `trojan`, `ss`, `hysteria2` and `anytls`, so
+every node published by `sub-preprocessor` loads without exclusion.
 
 Installing it is then a plain file copy:
 
