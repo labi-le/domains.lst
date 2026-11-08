@@ -88,12 +88,13 @@ start() {
   _write_tproxy_rules
   _populate_tproxy_set
   # At boot pbr runs before the proxy (see START above), so there is nothing to
-  # restart yet: the proxy picks the freshly written rules up when it starts.
-  # On a manual run the proxy is already up, and a restart makes it re-read the
-  # nft rules without waiting for the file watcher.
+  # reload yet: the proxy picks the freshly written rules up when it starts.
+  # On a manual run the proxy is already up and watching $RULES_DIR: every rewrite
+  # above is read and re-parsed by the provider itself, which logs
+  # "[Provider] <name>'s content update". A restart would only cost the process,
+  # its provider state and every established connection, so none is issued here.
   if /etc/init.d/murmur status > /dev/null 2>&1; then
-    _log "Restarting murmur..."
-    /etc/init.d/murmur restart
+    _log "murmur is running and watches $RULES_DIR, leaving it up"
   else
     _log "murmur is not running, leaving the start to the init sequence"
   fi

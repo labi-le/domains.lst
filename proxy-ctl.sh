@@ -3,7 +3,7 @@
 #
 #   proxy-ctl.sh status    - show the state
 #   proxy-ctl.sh restart   - restart murmur and flush the DNS cache
-#   proxy-ctl.sh refresh   - refetch the rule lists, rewrite the nft rules, restart
+#   proxy-ctl.sh refresh   - refetch the rule lists and rewrite the nft rules
 #   proxy-ctl.sh check     - verify that DNS and tproxy are served and traffic flows
 #
 # murmur is the only proxy on this router. It took over the ports mihomo used
@@ -48,8 +48,9 @@ _restart() {
 	_status
 }
 
-# The weekly rule refresh. pbr fetches the lists, renders the nft rules and restarts
-# the proxy. The cron entry runs it on Sunday at 06:00.
+# The weekly rule refresh. pbr fetches the lists and renders the nft rules; the proxy
+# watches those files and reloads them itself, so nothing is restarted and its uptime
+# survives the refresh. The cron entry runs it on Sunday at 06:00.
 _refresh() {
 	log "refreshing the rule lists"
 	/etc/init.d/pbr start

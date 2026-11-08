@@ -7,7 +7,7 @@
 | `murmur/config.yaml` | `/etc/murmur/config.yaml` | Main murmur static config (awg0=BY, awg1/awg2=WARP/FI) | static |
 | `murmur/init.d` | `/etc/init.d/murmur` | Procd service script | static |
 | `murmur/config` | `/etc/config/murmur` | UCI service settings for murmur | static |
-| `pbr` | `/etc/init.d/pbr` | Regenerates the rule files and the TPROXY IP set, then restarts the proxy | static |
+| `pbr` | `/etc/init.d/pbr` | Regenerates the rule files and the TPROXY IP set; the proxy reloads the files itself | static |
 | `proxy-ctl.sh` | `/root/proxy-ctl.sh` | Admin helper: status, check, restart, refresh | static |
 | `external-dns` | `/etc/init.d/external-dns` | Updates external router DNS record in UCI/dnsmasq | static |
 | `youtube-ipv6-block` | `/etc/init.d/youtube-ipv6-block` | IPv6 blocking helper for YouTube | static |
