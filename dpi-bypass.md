@@ -217,6 +217,129 @@ excluded from the bypass for the same reason. It was broken before this change
 and is untouched by it. Removing that entry would fix it the same way; it was
 left alone because nobody asked for it.
 
+## YouTube, measured 2026-11-10
+
+This section is about `nfqws2`, not the `nfqws` described above: the router runs
+zapret2 v1.0.6 from `/usr/bin` with `/etc/nfqws2`, so the `/opt/zapret` paths
+and the `zapret-hosts-user-exclude.txt` procedure still apply only to the
+retired v1 install.
+
+Method: replace the one profile that carries `*.googlevideo.com` (a temporary
+first-match profile in `nfqws2.conf`), restart the service, then pull 1-2 MB
+ranges from live `videoplayback` URLs through the router from a LAN client.
+Arms run interleaved in rounds so slow drift cancels out. TCP connect always
+succeeds; a failed sample is a ClientHello sent with no ServerHello ever
+arriving, and the same URL works again on a later attempt.
+
+| Strategy | ok |
+| --- | --- |
+| production: `hostfakesplit:host=www.google.com:ip_id=zero:tcp_ts=-600000:tcp_ts_up` | 73/174 (42%) |
+| same + `nofake2` (leading fake only) | 38/81 (47%) |
+| same + `nofake2:midhost=midsld` | 59/111 (53%) |
+| same + `nofake2:repeats=4` | 53/111 (48%) |
+| same + `repeats=8` | 9/18 (50%) |
+| same + `nofake1` (trailing fake only) | 0/45 |
+| `hostfakesplit` with the fooling args dropped | 0/18 |
+| `fake` + `multisplit` / `seqovl`, any blob (`tls_google`, `tls_max`, `stun`) | 0/54 |
+| `multisplit` alone, `oob`, `syndata`, `fakeddisplit` | 0/48 |
+| no desync at all | 0/36 |
+
+Three conclusions:
+
+- The leading fake is the whole bypass. `nofake1` removes it and nothing gets
+  through; every variant that keeps it lands near 50%.
+- Anything that mutates the real ClientHello - `seqovl`, a plain split,
+  `syndata`, `oob` - fails outright against Google regardless of the fake, so
+  those families are not candidates for `googlevideo` no matter what they do
+  for other sites.
+- The spread between 42% and 53% is inside the noise at n=75 (about ±11 points
+  at 95%), so there is nothing to gain by editing `nfqws2.conf`. The installed
+  strategy is already the one that works; the other half of the connections is
+  dropped upstream.
+
+The failures are per connection, so retries hide them: 10 single requests
+completed 5 times, the same 10 with `curl --retry 3 --retry-all-errors`
+completed 9. That is the "works every other time" symptom.
+
+Routing `googlevideo` around the filter through `awg2` works but is slow: 5 of
+6 requests completed at 0.35 MB/s median, so the tunnel is not a substitute for
+video traffic.
+
+zapret2 v1.0.7 (2026-11-05) adds `!`-exclusions in hostlists and flowtable
+detection for hardware offload. No new desync functions, so an upgrade changes
+none of this.
+
+Separate finding: the repo's `nfqws2/init.d` sources `/etc/nfqws2/nfqws2.conf.local`,
+but the init script installed on the router does not, so the `.рф` profile
+recorded in `nfqws2/nfqws2.conf.local` is not active.
+
+## Community strategies, checked 2026-11-10
+
+Where the strategies people actually run live:
+
+| Repository | What is inside |
+| --- | --- |
+| `nfqws/nfqws2-keenetic` | the package itself: binaries, `init.d`, default `nfqws2.conf`, docs |
+| `rndnaame/nfqws-menu`, `dea1hwatcher/nfqws-menu-openwrt` | installers plus a `strategies/nfqws2/` pack: whole configs named after their authors, all derived from Flowseal |
+| `Flowseal/zapret-discord-youtube` | the source: `general (ALTn).bat` for zapret1, the de-facto standard set |
+| `klaymm/nfqws2-flowseal` | the same set auto-converted to nfqws2 by `dev/flowseal2nfqws.py`, with `docs/strategies.md` explaining every mapping |
+| `zemidala/nfqws2-strategies` | per-provider database, one JSON per AS number, entries validated by a GitHub Action and confirmed per user |
+| `Omn1z/nfqws2-keenetic-strategy-selector`, `rangerxxyy/Xmenu`, `Sxlenium/zapret-keenetic-converter` | menus and converters around the same strategy sets |
+
+The per-provider database has no file for SkyNet (`AS35807`), so the closest
+entries are the other St. Petersburg providers - which are all `hostfakesplit`
+with `host=ya.ru`/`ad.adriver.ru` and `tcp_md5`. Measured here:
+
+| Strategy taken from the packs | ok |
+|---|---|
+| `hostfakesplit:repeats=4:tcp_ts=-600000:tcp_md5:host=ya.ru` (AS35539/AS51973) | 0/45 |
+| `hostfakesplit:repeats=4:tcp_ts=-600000:tcp_md5:host=ad.adriver.ru` (AS35539) | 0/45 |
+| `multisplit:pos=1:seqovl=1:seqovl_pattern=tls_clienthello` (AS35539) | 0/45 |
+| `fake:blob=tls_max:tcp_ack=-66000:tcp_ts_up:tls_mod=rnd,dupsid,padencap` + `multisplit:pos=sniext+4` (AS51570) | 9/24 |
+| `syndata` + `multidisorder_legacy:pos=midsld` (Flowseal ALT5) | 54/90, then 43/90 against 42/90 |
+| `syndata:repeats=8` + `multidisorder_legacy:pos=1,midsld` | 16/45 |
+| `hostfakesplit:host=www.google.com:ip_id=zero:tcp_md5` | 11/24 |
+| `hostfakesplit:host=www.google.com:ip_id=zero:badsum` | 10/24 |
+| `hostfakesplit:host=www.google.com:midhost=host-2:seqovl=sniext+3:seqovl_pattern=tls_max:badsum:tcp_md5:tcp_ts_up` | 13/24 |
+| `circular` cycling hostfakesplit / padencap / md5, `fails=2:retrans=2` | 20/45 |
+
+Nothing here beats the installed profile by more than noise, and the
+per-provider entries for the neighbouring St. Petersburg networks do not work at
+all on SkyNet.
+
+### The fooling is what keeps the fake harmless
+
+Isolating the fooling arguments of the production profile:
+
+| Fooling on `hostfakesplit:host=www.google.com` | ok |
+|---|---|
+| `ip_id=zero` only | 0/45 |
+| `ip_id=zero:tcp_ack=-66000` (badseq, client stack independent) | 19/45, 17/45 |
+| `ip_id=zero:tcp_ts=-600000:tcp_ts_up` (production) | 19/45, 23/45 |
+| `ip_id=zero:tcp_ack=-66000:tcp_ts=-600000:tcp_ts_up:tcp_md5` | 25/45 |
+
+The fake carries the real sequence number, so it only works if the server throws
+it away: `ip_id=zero` changes the IP header, not the segment, and on its own that
+is worth nothing. `tcp_ts` makes the server drop it through the RFC 1323
+timestamp check, but only for clients that send the timestamp option - Windows
+does not, and `zapret-lib.lua` silently does nothing in that case, which lands the
+client in the "no fooling" row. `tcp_ack=-66000` and `tcp_md5` need no client
+support and measure the same as `tcp_ts` here.
+
+So the profile now carries `tcp_ack=-66000:tcp_md5` next to `tcp_ts` and no longer
+depends on the client's TCP stack:
+
+```
+--lua-desync=hostfakesplit:host=www.google.com:ip_id=zero:tcp_ack=-66000:tcp_ts=-600000:tcp_ts_up:tcp_md5
+```
+
+Deployed 2026-11-10, on the `google.list` profile in `/etc/nfqws2/nfqws2.conf`
+(backup: `nfqws2.conf.bak.<timestamp>`). Verified after the restart: service
+running, `youtube.com` 200, `google.com` 200, `github.com` 200, `googlevideo`
+6/12 with 4.7 MB/s median on the ones that pass. The combined variant is the
+only arm that went above the ceiling (25/45, still inside noise), so this is
+about covering clients without TCP timestamps, not about raising the rate.
+
 ## Diagnosing the next one
 
 The symptom to recognise is an application that works while one class of its
