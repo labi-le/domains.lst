@@ -18,13 +18,8 @@ proxies:
     udp: true
     interface-name: awg1
 
-  - name: WARP-AWG0
-    type: direct
-    udp: true
-    interface-name: awg0
-
   # Cloudflare WARP through a Finland relay: the only rung platform.claude.com answers 200
-  # for, against 403 over awg0 and awg1, so it backs the subscription not the WARP group.
+  # for, against 403 over awg1, so it backs the subscription not the WARP group.
   - name: WARP-AWG2
     type: direct
     udp: true
@@ -74,7 +69,6 @@ proxy-groups:
   - name: WARP
     type: fallback
     proxies:
-      - WARP-AWG0
       - WARP-AWG1
       - VPN
     # Cloudflare is the one destination WARP still reaches when its egress is broken, so a
@@ -82,10 +76,10 @@ proxy-groups:
     url: "http://captive.apple.com/"
     interval: 300
     # The default `lazy: true` stops re-probing one interval after the last dial, so a
-    # startup probe taken before awg0/awg1 handshake would freeze a stale verdict.
+    # startup probe taken before the awg1 handshake would freeze a stale verdict.
     lazy: false
-    # awg0 answers this probe in 5.9-7.3s, once not at all inside 10s, while carrying
-    # Telegram at 0.07s, so anything near the implicit 5000ms retires the healthier rung.
+    # The timeout stays above the implicit 5000ms because a WARP rung can answer this
+    # probe late while still carrying traffic; fallback pays it only for a dead rung.
     # Fallback ignores `tolerance`, and `max-failed-times` never fires for direct members.
     timeout: 12000
     expected-status: 200

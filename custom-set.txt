@@ -11,6 +11,5 @@ ifconfig.io
 mcp.context7.com
 wiki.malw.link
 xiaomimimo.com
-api.telegram.org
 byesu.com
 typesafe.ai
