@@ -83,7 +83,6 @@ start() {
   : > "$WARP_IP_FILE.tmp"
   _fetch_ip_list "https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Subnets/IPv4/telegram.lst" "$TELEGRAM_IP_FILE.tmp"
   _fetch_ip_list "https://raw.githubusercontent.com/routir/unblock/refs/heads/main/services/viber-ip-de.lst" "$WARP_IP_FILE.tmp"
-  _fetch_ip_list "https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-ip-warp.txt" "$WARP_IP_FILE.tmp"
   _install_ip_file "$TELEGRAM_IP_FILE"
   _install_ip_file "$WARP_IP_FILE"
   _write_tproxy_rules

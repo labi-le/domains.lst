@@ -1,5 +1,0 @@
-# Fastly anycast and GitHub's Fastly-backed /22: both shaped to ~0.2 MB/s on the
-# direct WAN, 20-37 MB/s through awg1. The TPROXY rule matches iifname br-lan,
-# so router-originated fetches (pbr's own rule refresh) never take this path.
-151.101.0.0/16
-185.199.108.0/22
