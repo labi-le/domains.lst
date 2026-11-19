@@ -41,6 +41,7 @@ files remain in git history (`git log --all -- mihomo/`).
 | `pbr` | WARP rule set | `https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-set_cis.txt` | Local custom CIS domains for WARP |
 | `pbr` | TPROXY IP set | `https://raw.githubusercontent.com/itdoginfo/allow-domains/refs/heads/main/Subnets/IPv4/telegram.lst` | Telegram IPv4 ranges |
 | `pbr` | TPROXY IP set | `https://raw.githubusercontent.com/routir/unblock/refs/heads/main/services/viber-ip-de.lst` | Viber IPv4 ranges |
+| `pbr` | TPROXY IP set | `https://raw.githubusercontent.com/labi-le/domains.lst/refs/heads/main/custom-ip-warp.txt` | Shaped Fastly and GitHub CDN ranges |
 | `murmur` | proxy-provider | `http://192.168.1.2:7008/stable.txt` | Pre-filtered node list from the sub-preprocessor |
 | `murmur` | URL test | `https://platform.claude.com/` | Probe URL for `VPN-ALL-AUTO` and `VPN` |
 | `murmur` | fallback health | `http://captive.apple.com/` | Off-net probe URL for the `WARP` group |

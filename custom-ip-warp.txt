@@ -1,0 +1,6 @@
+# Shaped on the direct WAN: Fastly anycast and GitHub's Fastly-backed /22
+# measure 0.14-0.64 MB/s direct and 20-38 MB/s through awg1. The TPROXY rule
+# matches iifname br-lan, so router-originated traffic (pbr's own refresh)
+# never takes this path.
+151.101.0.0/16
+185.199.108.0/22
